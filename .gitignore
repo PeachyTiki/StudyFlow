@@ -1,6 +1,24 @@
+# Dependencies
+node_modules/
+
+# OS
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Editors
 .idea/
 .vscode/
-*.iml
 *.swp
+*.swo
+*.iml
+
+# Icon source folder — drop your icon here locally, not tracked
+icon-source/*.png
+icon-source/*.jpg
+icon-source/*.jpeg
+icon-source/*.svg
+
+# Temp / build artifacts
+*.tmp
+*.log

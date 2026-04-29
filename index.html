@@ -1,12 +1,13 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#0A0A0F">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" sizes="192x192" href="icon-192.png"><link rel="apple-touch-icon" sizes="512x512" href="icon-512.png"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>StudyFlow</title>
 <style>
 :root{--bg:#0A0A0F;--card:#12121A;--card2:#1A1A25;--text:#F0F0F5;--dim:#6B6B80;--muted:#2A2A38;--acc:#7C6FFF;--acc2:#A78BFA;--ok:#44BB77;--danger:#FF5577;--rc:#FF9944;--dc:var(--acc)}
 [data-theme=light]{--bg:#F5F5F7;--card:#FFF;--card2:#EEEEF2;--text:#1A1A2E;--dim:#8888A0;--muted:#D8D8E0;--acc:#6C5CE7;--acc2:#7E6EF7;--ok:#22AA66;--danger:#EE4466;--rc:#E87730;--dc:var(--acc)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'SF Pro Display',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-height:100vh;min-height:100dvh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;padding-bottom:60px}
+body{font-family:'SF Pro Display',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-height:100vh;min-height:100dvh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 h2{font-size:16px;font-weight:900;letter-spacing:-.3px}
 input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--muted);background:var(--card2);color:var(--text);font-family:system-ui;font-size:11px;font-weight:600;border-radius:6px;outline:none;margin-bottom:6px}
 input:focus,select:focus{border-color:var(--acc)}
@@ -57,7 +58,7 @@ button{font-family:system-ui}
 
 /* ═══ TASK ROW ═══ */
 .tr{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--card);border-radius:7px;margin-bottom:3px}
-.tr.done{opacity:.5}.tr.done .t-chk{background:var(--ok);border-color:var(--ok)}
+.tr.done{opacity:.55}
 .t-chk{width:18px;height:18px;border-radius:4px;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:#FFF;flex-shrink:0;transition:.2s}
 .t-info{flex:1;min-width:0}.t-name{font-size:10px;font-weight:700}.t-sub{font-size:7px;color:var(--dim)}
 .t-acts{display:flex;gap:4px;flex-shrink:0}
@@ -68,6 +69,7 @@ button{font-family:system-ui}
 .hm-cell{width:12px;height:12px;border-radius:2px;background:var(--muted)}
 .hm-cell.l1{background:color-mix(in srgb,var(--acc) 25%,var(--muted))}.hm-cell.l2{background:color-mix(in srgb,var(--acc) 50%,var(--muted))}
 .hm-cell.l3{background:color-mix(in srgb,var(--acc) 75%,var(--muted))}.hm-cell.l4{background:var(--acc)}
+.grp-hdr{font-size:8px;font-weight:900;letter-spacing:1.5px;padding:10px 0 4px;text-transform:uppercase;border-bottom:1px solid var(--muted);margin-bottom:4px}
 
 /* ═══ STUDY MODE ═══ */
 .study-overlay{position:fixed;inset:0;background:var(--bg);z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px}
@@ -110,18 +112,19 @@ button{font-family:system-ui}
 <div id="dS" class="tab"></div>
 <div id="xS" class="tab"></div>
 <nav class="nb">
-<div class="nt a" onclick="sV('t')"><div class="ni">📋</div><div class="nl">Today</div></div>
-<div class="nt" onclick="sV('s')"><div class="ni">📚</div><div class="nl">Subjects</div></div>
-<div class="nt" onclick="sV('d')"><div class="ni">📊</div><div class="nl">Data</div></div>
-<div class="nt" onclick="sV('x')"><div class="ni">⚙️</div><div class="nl">Settings</div></div>
+<div class="nt a" onclick="sV('t')"><div class="ni">📋</div><div class="nl" id="nl_t">Today</div></div>
+<div class="nt" onclick="sV('s')"><div class="ni">📚</div><div class="nl" id="nl_s">Subjects</div></div>
+<div class="nt" onclick="sV('d')"><div class="ni">📊</div><div class="nl" id="nl_d">Data</div></div>
+<div class="nt" onclick="sV('x')"><div class="ni">⚙️</div><div class="nl" id="nl_x">Settings</div></div>
 </nav>
 <div class="mB" id="mB" onclick="if(event.target===this)cM()"><div class="mD" id="mD"></div></div>
 <div id="studyOL" class="study-overlay" style="display:none"></div>
 <script>
 // ═══ CONSTANTS ═══
 const COLS=['#7C6FFF','#FF6B6B','#4ECDC4','#FFE66D','#FF8A5C','#A78BFA','#6BCB77','#FF79C6','#4DA6FF','#F97316','#EC4899','#14B8A6','#F59E0B','#8B5CF6','#EF4444','#06B6D4'];
+const GROUP_ORDER=['Mathematics','Physics','Fluid Systems','Chemistry','Environmental Engineering'];
 const TD=ds(new Date());
-let cv='t',activeSem=null,studyActive=false,studyTimer=null,studyStart=null,studySub=null,studyType=null,studyNum=null,studyElapsed=0;
+let cv='t',activeSem=null,studyActive=false,studyTimer=null,studyStart=null,studySub=null,studyType=null,studyNum=null,studyElapsed=0,dataRange='3m',sessionTasks=[],sessionIdx=-1,viewDate=TD;
 
 // ═══ HELPERS ═══
 function ds(d){return d.toISOString().slice(0,10)}
@@ -144,8 +147,129 @@ function gSched(){return ld('sf_sched')||{config:null,days:{}}}
 function sSched(v){sv('sf_sched',v)}
 function gSkips(){return ld('sf_skips')||{}}
 function sSkips(v){sv('sf_skips',v)}
-function gSett(){return ld('sf_sett')||{theme:'dark',lang:'en',hemi:'north',showV:true,showU:true,retro:false,uni:''}}
+const SETT_DEF={theme:'dark',lang:'en',hemi:'north',showV:true,showU:true,showPE:true,retro:false,uni:'',hmT1:30,hmT2:60,hmT3:120,taskOrder:'parallel',defVDur:1,defUDur:1.5,defPeDur:2.5,wkndMult:3};
+function gSett(){const s=ld('sf_sett');return s?Object.assign({},SETT_DEF,s):Object.assign({},SETT_DEF)}
 function sSett(v){sv('sf_sett',v)}
+function gUnis(){return ld('sf_unis')||[]}
+function sUnis(v){sv('sf_unis',v)}
+
+// ═══ LANGUAGES ═══
+const LANGS={
+en:{nav_today:"Today",nav_subjects:"Subjects",nav_data:"Data",nav_settings:"Settings",lectures:"Lectures",practicals:"Practicals",past_exams:"Past Exams",lec:"Lecture",prac:"Practical",pe:"Past Exam",today_title:"Today's Objectives",upcoming:"Upcoming Exams",do_today:"Do Today",sem_prog:"Semester Progress",all_done:"All caught up!",no_tasks:"No pending tasks for today",session:"Study Session",add_sched:"Add to Schedule",display:"Display",academic:"Academic",data:"Data",lang_name:"English"},
+de:{nav_today:"Heute",nav_subjects:"Fächer",nav_data:"Daten",nav_settings:"Einstellungen",lectures:"Vorlesungen",practicals:"Übungen",past_exams:"Alte Klausuren",lec:"Vorlesung",prac:"Übung",pe:"Alte Klausur",today_title:"Heutige Ziele",upcoming:"Kommende Prüfungen",do_today:"Heute lernen",sem_prog:"Semesterfortschritt",all_done:"Alles erledigt!",no_tasks:"Keine Aufgaben für heute",session:"Lernsitzung",add_sched:"Zum Plan hinzufügen",display:"Anzeige",academic:"Akademisch",data:"Daten",lang_name:"Deutsch"},
+fr:{nav_today:"Aujourd'hui",nav_subjects:"Matières",nav_data:"Données",nav_settings:"Paramètres",lectures:"Cours",practicals:"Travaux Pratiques",past_exams:"Anciens Examens",lec:"Cours",prac:"TP",pe:"Ancien Examen",today_title:"Objectifs du Jour",upcoming:"Examens Prochains",do_today:"À Faire",sem_prog:"Progrès du Semestre",all_done:"Tout est fait!",no_tasks:"Aucune tâche aujourd'hui",session:"Session d'Étude",add_sched:"Ajouter au planning",display:"Affichage",academic:"Académique",data:"Données",lang_name:"Français"},
+es:{nav_today:"Hoy",nav_subjects:"Materias",nav_data:"Datos",nav_settings:"Ajustes",lectures:"Clases",practicals:"Prácticas",past_exams:"Exámenes Anteriores",lec:"Clase",prac:"Práctica",pe:"Examen Anterior",today_title:"Objetivos de Hoy",upcoming:"Próximos Exámenes",do_today:"Para Hoy",sem_prog:"Progreso del Semestre",all_done:"¡Todo al día!",no_tasks:"Sin tareas para hoy",session:"Sesión de Estudio",add_sched:"Agregar al plan",display:"Pantalla",academic:"Académico",data:"Datos",lang_name:"Español"},
+it:{nav_today:"Oggi",nav_subjects:"Materie",nav_data:"Dati",nav_settings:"Impostazioni",lectures:"Lezioni",practicals:"Esercitazioni",past_exams:"Esami Passati",lec:"Lezione",prac:"Esercitazione",pe:"Esame Passato",today_title:"Obiettivi di Oggi",upcoming:"Esami Imminenti",do_today:"Da Fare",sem_prog:"Progressi del Semestre",all_done:"Tutto fatto!",no_tasks:"Nessun compito per oggi",session:"Sessione di Studio",add_sched:"Aggiungi al piano",display:"Schermo",academic:"Accademico",data:"Dati",lang_name:"Italiano"},
+pt:{nav_today:"Hoje",nav_subjects:"Matérias",nav_data:"Dados",nav_settings:"Configurações",lectures:"Aulas",practicals:"Práticas",past_exams:"Exames Anteriores",lec:"Aula",prac:"Prática",pe:"Exame Anterior",today_title:"Objetivos de Hoje",upcoming:"Próximos Exames",do_today:"Para Hoje",sem_prog:"Progresso do Semestre",all_done:"Tudo em dia!",no_tasks:"Sem tarefas para hoje",session:"Sessão de Estudo",add_sched:"Adicionar ao plano",display:"Ecrã",academic:"Acadêmico",data:"Dados",lang_name:"Português"},
+nl:{nav_today:"Vandaag",nav_subjects:"Vakken",nav_data:"Data",nav_settings:"Instellingen",lectures:"Colleges",practicals:"Practica",past_exams:"Oude Examens",lec:"College",prac:"Practicum",pe:"Oud Examen",today_title:"Doelen van Vandaag",upcoming:"Komende Examens",do_today:"Vandaag Doen",sem_prog:"Semestervoortgang",all_done:"Alles klaar!",no_tasks:"Geen taken voor vandaag",session:"Studiesessie",add_sched:"Aan schema toevoegen",display:"Weergave",academic:"Academisch",data:"Gegevens",lang_name:"Nederlands"},
+pl:{nav_today:"Dziś",nav_subjects:"Przedmioty",nav_data:"Dane",nav_settings:"Ustawienia",lectures:"Wykłady",practicals:"Ćwiczenia",past_exams:"Stare Egzaminy",lec:"Wykład",prac:"Ćwiczenie",pe:"Stary Egzamin",today_title:"Cele na Dziś",upcoming:"Nadchodzące Egzaminy",do_today:"Na Dziś",sem_prog:"Postęp Semestru",all_done:"Wszystko gotowe!",no_tasks:"Brak zadań na dziś",session:"Sesja Nauki",add_sched:"Dodaj do planu",display:"Wyświetlanie",academic:"Akademicki",data:"Dane",lang_name:"Polski"},
+ru:{nav_today:"Сегодня",nav_subjects:"Предметы",nav_data:"Данные",nav_settings:"Настройки",lectures:"Лекции",practicals:"Практики",past_exams:"Прошлые Экзамены",lec:"Лекция",prac:"Практика",pe:"Прошлый Экзамен",today_title:"Цели на Сегодня",upcoming:"Ближайшие Экзамены",do_today:"На Сегодня",sem_prog:"Прогресс Семестра",all_done:"Всё готово!",no_tasks:"Нет задач на сегодня",session:"Учебная Сессия",add_sched:"Добавить в расписание",display:"Экран",academic:"Академический",data:"Данные",lang_name:"Русский"},
+zh:{nav_today:"今天",nav_subjects:"科目",nav_data:"数据",nav_settings:"设置",lectures:"讲座",practicals:"实践",past_exams:"历年真题",lec:"讲座",prac:"练习",pe:"历年真题",today_title:"今日目标",upcoming:"即将到来的考试",do_today:"今日任务",sem_prog:"学期进度",all_done:"全部完成！",no_tasks:"今天没有待完成任务",session:"学习会话",add_sched:"添加到计划",display:"显示",academic:"学术",data:"数据",lang_name:"中文"},
+ja:{nav_today:"今日",nav_subjects:"科目",nav_data:"データ",nav_settings:"設定",lectures:"講義",practicals:"演習",past_exams:"過去問",lec:"講義",prac:"演習",pe:"過去問",today_title:"今日の目標",upcoming:"近日中の試験",do_today:"今日やること",sem_prog:"学期の進捗",all_done:"全部完了！",no_tasks:"今日のタスクはありません",session:"学習セッション",add_sched:"スケジュールに追加",display:"表示",academic:"学術",data:"データ",lang_name:"日本語"}};
+function tr(key){const s=gSett();return(LANGS[s.lang]||LANGS.en)[key]||LANGS.en[key]||key}
+function typeLabel(type){return type==='v'?tr('lec'):type==='u'?tr('prac'):tr('pe')}
+
+const AI_PROMPT=`STUDYFLOW SETUP ASSISTANT
+=============================================
+You are a StudyFlow setup assistant. Your job is to collect everything needed to build a student's complete study schedule, then output a single importable JSON file.
+
+Ask questions conversationally, one section at a time. Don't ask everything at once. Confirm details as you go. When you have everything, output ONLY the JSON — no explanation, no markdown fences, just the raw JSON object.
+
+━━━ STEP 1 · UNIVERSITY & SEMESTER ━━━
+Ask:
+• University name
+• Semester name (e.g. "Summer Semester 2026", "WS 2025/26")
+• Semester type: summer or winter
+• Semester start date and end date (YYYY-MM-DD)
+
+━━━ STEP 2 · SUBJECTS ━━━
+For each subject ask:
+• Full subject name
+• Subject group / department (e.g. Mathematics, Physics, Chemistry, Engineering)
+• Number of lecture sessions
+• Number of exercise / practical sessions
+• Exam date and time (if known — leave blank if not)
+• Number of past exam papers to track (e.g. 3, or 0 if none)
+• Past exam names (e.g. "SS 2025", "WS 2024/25", "SS 2024")
+
+After each subject: "Any more subjects to add?"
+
+━━━ STEP 3 · STUDY SCHEDULE ━━━
+Ask:
+• Start date for studying (YYYY-MM-DD)
+• How many tasks per WEEKDAY (Mon–Fri)? e.g. 2
+• How many tasks per WEEKEND DAY (Sat–Sun)? e.g. 6 [tip: 3× weekday is popular]
+• Hard deadline date — when everything must be done by (YYYY-MM-DD)
+• Buffer: how many weeks before that deadline to finish? (e.g. 2)
+• Include in schedule? → Lectures (yes/no) · Exercises (yes/no) · Past exams (yes/no)
+
+━━━ STEP 4 · PREFERENCES ━━━
+Ask:
+• App language: English / German / French / Spanish / Italian / Portuguese / Dutch / Polish / Russian / Chinese / Japanese
+• Typical lecture duration (hours, e.g. 1.5)
+• Typical exercise / practical duration (hours, e.g. 1.5)
+• Typical past exam session duration (hours, e.g. 2.5)
+• Theme preference: dark or light
+
+━━━ OUTPUT FORMAT ━━━
+Output ONLY this JSON — nothing else, no code fences, no explanation:
+
+{
+  "version": 1,
+  "university": "University Name",
+  "semester": {
+    "name": "SS 2026",
+    "type": "summer",
+    "year": 2026,
+    "start": "2026-04-01",
+    "end": "2026-09-30"
+  },
+  "subjects": [
+    {
+      "name": "Subject Name",
+      "group": "Mathematics",
+      "color": "#7C6FFF",
+      "vCount": 6,
+      "uCount": 12,
+      "examDate": "2026-07-23",
+      "examTime": "13:00",
+      "pastExams": [
+        {"name": "SS 2025", "year": "2025"},
+        {"name": "WS 2024/25", "year": "2024"}
+      ]
+    }
+  ],
+  "schedule": {
+    "startDate": "2026-05-01",
+    "dayPlan": {"0":6,"1":2,"2":2,"3":2,"4":2,"5":2,"6":6},
+    "includeVorlesungen": false,
+    "includeUebungen": true,
+    "includePastExams": true,
+    "weeksBefore": 2
+  },
+  "settings": {
+    "theme": "dark",
+    "lang": "en",
+    "defVDur": 1.0,
+    "defUDur": 1.5,
+    "defPeDur": 2.5
+  }
+}
+
+━━━ REFERENCE ━━━
+Color palette — assign one per subject, cycling through this list:
+#7C6FFF, #FF6B6B, #4ECDC4, #FFE66D, #FF8A5C, #A78BFA, #6BCB77, #FF79C6, #4DA6FF, #F97316, #EC4899, #14B8A6, #F59E0B, #8B5CF6, #EF4444, #06B6D4
+
+dayPlan keys — 0=Sunday 1=Monday 2=Tuesday 3=Wednesday 4=Thursday 5=Friday 6=Saturday:
+• 1/weekday · 3/weekend (3×):   {"0":3,"1":1,"2":1,"3":1,"4":1,"5":1,"6":3}
+• 2/weekday · 6/weekend (3×):   {"0":6,"1":2,"2":2,"3":2,"4":2,"5":2,"6":6}
+• Equal every day (3/day):       {"0":3,"1":3,"2":3,"3":3,"4":3,"5":3,"6":3}
+• Weekdays only (3/day):         {"0":0,"1":3,"2":3,"3":3,"4":3,"5":3,"6":0}
+
+Language codes: en de fr es it pt nl pl ru zh ja
+Semester type: "summer" or "winter"
+=============================================`;
+
 
 // ═══ SEMESTER HELPERS ═══
 function semLabel(sem){const st=gSett();
@@ -163,52 +287,90 @@ function toggleTask(subId,type,num){const t=getTask(subId,type,num);setTask(subI
 function subProgress(sub){const st=gSett(),p=gProg()[sub.id]||{};let vDone=0,vTotal=0,uDone=0,uTotal=0;
 if(st.showV){vTotal=sub.vCount||0;for(let i=1;i<=vTotal;i++)if(p.v&&p.v[i]&&p.v[i].done)vDone++}
 if(st.showU){uTotal=sub.uCount||0;for(let i=1;i<=uTotal;i++)if(p.u&&p.u[i]&&p.u[i].done)uDone++}
-let peDone=0,peTotal=(sub.pastExams||[]).length;
-(sub.pastExams||[]).forEach((pe,i)=>{if(p.pe&&p.pe[i+1]&&p.pe[i+1].done)peDone++});
+let peDone=0,peTotal=0;
+if(st.showPE){peTotal=(sub.pastExams||[]).length;(sub.pastExams||[]).forEach((pe,i)=>{if(p.pe&&p.pe[i+1]&&p.pe[i+1].done)peDone++})}
 return{vDone,vTotal,uDone,uTotal,peDone,peTotal,total:vTotal+uTotal+peTotal,done:vDone+uDone+peDone}}
 function subStudyTime(subId){const log=gSLog();let total=0;Object.values(log).forEach(day=>{day.forEach(e=>{if(e.subId===subId)total+=e.duration||0})});return total}
 
 // ═══ TODAY TAB ═══
 function rT(){const sem=getActiveSem();const el=document.getElementById('tS');
-let h=`<div style="padding:10px 0 2px"><h2>📋 Today's Objectives</h2><div class="sub">${fd(TD).toUpperCase()}</div></div>`;
-if(!sem){h+=`<div style="padding:40px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">📚</div><div style="font-size:11px;font-weight:700;color:var(--dim)">No semesters yet</div><div style="font-size:9px;color:var(--dim);margin-top:4px">Go to Subjects tab to add your first semester</div></div>`;
+const isToday=viewDate===TD;
+const sched=gSched();
+// Week calendar strip
+const vd=new Date(viewDate+'T12:00:00');
+const dow=vd.getDay();
+const weekStart=new Date(vd);weekStart.setDate(vd.getDate()+(dow===0?-6:1-dow));
+const dayLetters=['M','T','W','T','F','S','S'];
+let h=`<div style="padding:10px 0 2px"><h2>📋 ${isToday?tr('today_title'):fd(viewDate)}</h2>`;
+if(!isToday)h+=`<div style="font-size:8px;cursor:pointer;color:var(--acc);margin-top:2px" onclick="viewDate=TD;rT()">← Back to Today</div>`;
+h+=`</div>`;
+h+=`<div style="display:flex;align-items:center;gap:3px;margin-bottom:8px">`;
+h+=`<button onclick="shiftView(-7)" style="background:none;border:none;color:var(--text);font-size:18px;cursor:pointer;padding:0 4px;opacity:.5;line-height:1;flex-shrink:0">‹</button>`;
+h+=`<div style="display:flex;flex:1;justify-content:space-around;background:var(--muted);border-radius:10px;padding:5px 2px">`;
+for(let i=0;i<7;i++){
+  const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);
+  const dStr=ds(d);const isT=dStr===TD;const isSel=dStr===viewDate;
+  const hasTasks=!!(sched.days&&sched.days[dStr]&&sched.days[dStr].length);
+  h+=`<div onclick="setViewDate('${dStr}')" style="display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:4px 2px;border-radius:8px;min-width:28px;${isSel?'background:var(--acc);':isT?'box-shadow:0 0 0 1.5px var(--acc);':''}">`;
+  h+=`<div style="font-size:7px;font-weight:700;color:${isSel?'rgba(255,255,255,0.75)':'var(--dim)'}">${dayLetters[i]}</div>`;
+  h+=`<div style="font-size:11px;font-weight:${isT?'800':'600'};color:${isSel?'#fff':'var(--text)'}">${d.getDate()}</div>`;
+  h+=`<div style="width:4px;height:4px;border-radius:50%;margin-top:1px;background:${hasTasks?(isSel?'rgba(255,255,255,0.7)':'var(--acc)'):'transparent'}"></div>`;
+  h+=`</div>`}
+h+=`</div>`;
+h+=`<button onclick="shiftView(7)" style="background:none;border:none;color:var(--text);font-size:18px;cursor:pointer;padding:0 4px;opacity:.5;line-height:1;flex-shrink:0">›</button>`;
+h+=`</div>`;
+if(!sem){h+=`<div style="padding:32px 20px;text-align:center"><div style="font-size:36px;margin-bottom:10px">📖</div><div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:6px">Welcome to StudyFlow</div><div style="font-size:9px;color:var(--dim);margin-bottom:16px;line-height:1.6">Set up your entire semester schedule in minutes.<br>Let AI do the work for you.</div><button class="btn bp" style="font-size:9px;padding:10px 20px;margin-bottom:8px" onclick="sV('x')">🤖 Set up with AI →</button><div style="font-size:7px;color:var(--dim);margin-top:4px">or add a semester manually in the Subjects tab</div></div>`;
 el.innerHTML=h;return}
 const subs=semSubs(sem.id),st=gSett();
-// Upcoming exams
-const exams=subs.filter(s=>s.examDate).map(s=>{const days=Math.ceil((new Date(s.examDate)-new Date(TD))/(864e5));return{...s,days}}).filter(x=>x.days>=0&&x.days<=30).sort((a,b)=>a.days-b.days);
-if(exams.length){h+=`<div class="sub">UPCOMING EXAMS</div>`;
+// Upcoming exams (today view only)
+if(isToday){const exams=subs.filter(s=>s.examDate).map(s=>{const days=Math.ceil((new Date(s.examDate)-new Date(TD))/(864e5));return{...s,days}}).filter(x=>x.days>=0&&x.days<=30).sort((a,b)=>a.days-b.days);
+if(exams.length){h+=`<div class="sub">${tr('upcoming')}</div>`;
 exams.forEach(e=>{const cls=e.days<=7?'urgent':e.days<=14?'soon':'ok';
-h+=`<div class="today-card" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:10px;font-weight:800">${e.name}</div><div style="font-size:7px;color:var(--dim)">${e.examDate}${e.examTime?' at '+e.examTime:''}</div></div><span class="exam-badge ${cls}">${e.days===0?'TODAY':e.days+' days'}</span></div>`})}
-// Today's tasks — use schedule if available, else fallback to smart pacing
-const sched=gSched();let tasks=[];
-const schedTasks=(sched.days&&sched.days[TD])||[];
-if(schedTasks.length){// Schedule-driven
+h+=`<div class="today-card" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:10px;font-weight:800">${e.name}</div><div style="font-size:7px;color:var(--dim)">${e.examDate}${e.examTime?' at '+e.examTime:''}</div></div><span class="exam-badge ${cls}">${e.days===0?'TODAY':e.days+' days'}</span></div>`})}}
+// Tasks for viewed date
+const schedStart=sched.config?.startDate;
+const schedTasks=(sched.days&&sched.days[viewDate])||[];
+// Show countdown if browsing a date before the schedule begins
+if(schedStart&&viewDate<schedStart){
+const daysUntil=Math.ceil((new Date(schedStart+'T12:00:00')-new Date(TD+'T12:00:00'))/(864e5));
+h+=`<div style="padding:24px 16px;text-align:center;background:var(--card);border-radius:9px;margin-bottom:6px"><div style="font-size:28px;margin-bottom:8px">🗓️</div><div style="font-size:12px;font-weight:800;margin-bottom:4px">${daysUntil>1?`Study starts in ${daysUntil} days`:daysUntil===1?'Study starts tomorrow!':'Study starts today!'}</div><div style="font-size:8px;color:var(--dim)">First study day: ${fd(schedStart)}</div></div>`;
+}else{
+let tasks=[];
+if(schedTasks.length){
 schedTasks.forEach(st2=>{const sub=subs.find(s=>s.id===st2.subId);if(!sub)return;
-const t=getTask(st2.subId,st2.type,st2.num);if(t.done)return;
-const typeLabels={v:'Vorlesung',u:'Übung',pe:'Past Exam'};let label=typeLabels[st2.type]+' '+st2.num;
+const t=getTask(st2.subId,st2.type,st2.num);
+let label=typeLabel(st2.type)+' '+st2.num;
 if(st2.type==='pe'){const pe=(sub.pastExams||[])[st2.num-1];if(pe)label='📄 '+pe.name}
 tasks.push({sub,type:st2.type,num:st2.num,task:t,label,prio:0,scheduled:true})})}
-else{// Fallback: smart pacing (original logic)
+else if(isToday){
 subs.forEach(sub=>{
 if(st.showV){for(let i=1;i<=sub.vCount;i++){const t=getTask(sub.id,'v',i);
-if(!t.done&&i<=subProgress(sub).vDone+1)tasks.push({sub,type:'v',num:i,task:t,label:`Vorlesung ${i}`,prio:999})}}
+if(!t.done&&i<=subProgress(sub).vDone+1)tasks.push({sub,type:'v',num:i,task:t,label:`${typeLabel('v')} ${i}`,prio:999})}}
 if(st.showU){for(let i=1;i<=sub.uCount;i++){const t=getTask(sub.id,'u',i);
-if(!t.done&&i<=subProgress(sub).uDone+1)tasks.push({sub,type:'u',num:i,task:t,label:`Übung ${i}`,prio:999})}}
-(sub.pastExams||[]).forEach((pe,idx)=>{const t=getTask(sub.id,'pe',idx+1);
+if(!t.done&&i<=subProgress(sub).uDone+1)tasks.push({sub,type:'u',num:i,task:t,label:`${typeLabel('u')} ${i}`,prio:999})}}
+if(st.showPE)(sub.pastExams||[]).forEach((pe,idx)=>{const t=getTask(sub.id,'pe',idx+1);
 if(!t.done)tasks.push({sub,type:'pe',num:idx+1,task:t,label:'📄 '+pe.name,prio:999})})});
 tasks=tasks.slice(0,5)}
-if(tasks.length){h+=`<div class="sub">DO TODAY (${tasks.length})</div>`;
+if(tasks.length){
+const to=st.taskOrder||'parallel';
+if(to==='parallel'){tasks.sort((a,b)=>{const ao=a.type==='v'?0:a.type==='u'?1:2;const bo=b.type==='v'?0:b.type==='u'?1:2;return ao!==bo?ao-bo:a.num-b.num})}
+const nDone=tasks.filter(t=>t.task.done).length;const nLeft=tasks.length-nDone;
+const hdrLabel=nLeft===0?`✅ ${tr('all_done')}`:`${tr('do_today')} · ${nLeft} left`;
+h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><div class="sub" style="padding:0">${hdrLabel}</div>${(isToday&&nLeft>0)?`<button class="btn bp" style="font-size:7px;padding:4px 8px" onclick="openStudySession()">▶️ ${tr('session')}</button>`:''}</div>`;
 tasks.forEach(t=>{const done=t.task.done;const mins=Math.round(subStudyTime(t.sub.id)/60);
-h+=`<div class="tr${done?' done':" "}"><div class="t-chk" onclick="toggleTask('${t.sub.id}','${t.type}',${t.num})" style="border-color:${t.sub.color}">${done?'✓':''}</div>`;
-h+=`<div class="t-info"><div class="t-name">${t.label}</div><div class="t-sub">${t.sub.name}${mins?' · '+mins+'min studied':''}</div></div>`;
-h+=`<div class="t-acts"><span class="t-btn" onclick="startStudy('${t.sub.id}','${t.type}',${t.num})" title="Study">▶️</span>`;
+h+=`<div class="tr${done?' done':''}"><div class="t-chk" onclick="toggleTask('${t.sub.id}','${t.type}',${t.num})" style="border-color:${t.sub.color};${done?`background:${t.sub.color}`:'background:transparent'}">${done?'✓':''}</div>`;
+h+=`<div class="t-info"><div class="t-name" style="${done?'text-decoration:line-through':''}">${t.label}</div><div class="t-sub">${t.sub.name}${mins?' · '+mins+'min':''}</div></div>`;
+h+=`<div class="t-acts">`;
+if(!done)h+=`<span class="t-btn" onclick="startStudy('${t.sub.id}','${t.type}',${t.num})" title="Study">▶️</span>`;
 h+=`<span class="t-btn" onclick="exportAI('${t.sub.id}','${t.type}',${t.num})" title="AI Export">🤖</span>`;
-h+=`<span class="t-btn" onclick="skipTask('${t.sub.id}','${t.type}',${t.num})" title="Skip to tomorrow">⏭️</span></div></div>`})}
-else{h+=`<div style="padding:30px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">✅</div><div style="font-size:11px;font-weight:700;color:var(--ok)">All caught up!</div><div style="font-size:9px;color:var(--dim);margin-top:4px">No pending tasks for today</div></div>`}
-// Quick stats
+if(isToday&&!done)h+=`<span class="t-btn" onclick="skipTask('${t.sub.id}','${t.type}',${t.num})" title="Skip to tomorrow">⏭️</span>`;
+h+=`</div></div>`})}
+else{h+=`<div style="padding:30px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">${isToday?'✅':'📅'}</div><div style="font-size:11px;font-weight:700;color:${isToday?'var(--ok)':'var(--dim)'}">${isToday?tr('all_done'):'Nothing scheduled'}</div><div style="font-size:9px;color:var(--dim);margin-top:4px">${isToday?tr('no_tasks'):'No tasks planned for this day'}</div></div>`}
+}
+// Semester progress
 const allDone=subs.reduce((s,sub)=>s+subProgress(sub).done,0);const allTotal=subs.reduce((s,sub)=>s+subProgress(sub).total,0);
 const pct=allTotal?Math.round(allDone/allTotal*100):0;
-h+=`<div class="sub">SEMESTER PROGRESS</div>`;
+h+=`<div class="sub">${tr('sem_prog')}</div>`;
 h+=`<div class="today-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:9px;font-weight:800">${sem.name||semLabel(sem)}</span><span style="font-size:9px;font-weight:800;color:var(--acc)">${pct}%</span></div>`;
 h+=`<div style="height:6px;background:var(--muted);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--acc);border-radius:3px;transition:.3s"></div></div>`;
 h+=`<div style="font-size:7px;color:var(--dim);margin-top:4px">${allDone}/${allTotal} tasks complete</div></div>`;
@@ -229,16 +391,20 @@ h+=`<div style="display:flex;justify-content:space-between;align-items:center;ma
 // Subjects
 const subs=semSubs(sem.id);
 h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><div class="sub" style="padding:0">SUBJECTS (${subs.length})</div><div style="display:flex;gap:3px"><button class="btn bp" style="font-size:7px;padding:4px 8px" onclick="openScheduler('${sem.id}')">📅 Schedule</button><button class="btn bs" style="font-size:7px;padding:4px 8px" onclick="addSub('${sem.id}')">+ Add</button></div></div>`;
-subs.forEach(sub=>{const prog=subProgress(sub);const pct=prog.total?Math.round(prog.done/prog.total*100):0;
+const sorted=[...subs].sort((a,b)=>{const ai=GROUP_ORDER.indexOf(a.group||'');const bi=GROUP_ORDER.indexOf(b.group||'');return(ai<0?99:ai)-(bi<0?99:bi)});
+let lastGrp=null;
+sorted.forEach(sub=>{
+if(sub.group&&sub.group!==lastGrp){h+=`<div class="grp-hdr" style="color:${sub.color}">${sub.group}</div>`;lastGrp=sub.group}
+const prog=subProgress(sub);const pct=prog.total?Math.round(prog.done/prog.total*100):0;
 h+=`<div class="sc" style="--sc:${sub.color}" onclick="openSub('${sub.id}')">`;
 h+=`<div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="sc-name">${sub.name}</div>`;
 if(sub.examDate){const days=Math.ceil((new Date(sub.examDate)-new Date(TD))/(864e5));const cls=days<=7?'urgent':days<=14?'soon':'ok';
 h+=`<span class="exam-badge ${cls}">${days<=0?'EXAM NOW':days+'d to exam'}</span>`}
 h+=`</div>`;
 h+=`<div class="sc-prog">`;
-if(st.showV){h+=`<div class="sc-bar"><div class="sc-bar-label">VORLESUNGEN</div><div class="sc-bar-track"><div class="sc-bar-fill" style="width:${prog.vTotal?prog.vDone/prog.vTotal*100:0}%;background:var(--acc)"></div></div><div class="sc-pct">${prog.vDone}/${prog.vTotal}</div></div>`}
-if(st.showU){h+=`<div class="sc-bar"><div class="sc-bar-label">ÜBUNGEN</div><div class="sc-bar-track"><div class="sc-bar-fill" style="width:${prog.uTotal?prog.uDone/prog.uTotal*100:0}%;background:var(--ok)"></div></div><div class="sc-pct">${prog.uDone}/${prog.uTotal}</div></div>`}
-if(prog.peTotal>0){h+=`<div class="sc-bar"><div class="sc-bar-label">PAST EXAMS</div><div class="sc-bar-track"><div class="sc-bar-fill" style="width:${prog.peTotal?prog.peDone/prog.peTotal*100:0}%;background:var(--rc)"></div></div><div class="sc-pct">${prog.peDone}/${prog.peTotal}</div></div>`}
+if(st.showV){h+=`<div class="sc-bar"><div class="sc-bar-label">${tr('lectures')}</div><div class="sc-bar-track"><div class="sc-bar-fill" style="width:${prog.vTotal?prog.vDone/prog.vTotal*100:0}%;background:${sub.color}"></div></div><div class="sc-pct">${prog.vDone}/${prog.vTotal}</div></div>`}
+if(st.showU){h+=`<div class="sc-bar"><div class="sc-bar-label">${tr('practicals')}</div><div class="sc-bar-track"><div class="sc-bar-fill" style="width:${prog.uTotal?prog.uDone/prog.uTotal*100:0}%;background:${sub.color};opacity:.7"></div></div><div class="sc-pct">${prog.uDone}/${prog.uTotal}</div></div>`}
+if(prog.peTotal>0){h+=`<div class="sc-bar"><div class="sc-bar-label">${tr('past_exams')}</div><div class="sc-bar-track"><div class="sc-bar-fill" style="width:${prog.peTotal?prog.peDone/prog.peTotal*100:0}%;background:var(--rc)"></div></div><div class="sc-pct">${prog.peDone}/${prog.peTotal}</div></div>`}
 h+=`</div>`;
 const studyMins=Math.round(subStudyTime(sub.id)/60);
 if(studyMins)h+=`<div style="font-size:7px;color:var(--dim);margin-top:4px">⏱ ${studyMins} min studied</div>`;
@@ -247,50 +413,62 @@ el.innerHTML=h}
 
 // ═══ OPEN SUBJECT DETAIL ═══
 function openSub(id){const sub=gSubs().find(s=>s.id===id);if(!sub)return;const st=gSett();
-let h=`<h3>${sub.name}</h3>`;
-if(sub.examDate)h+=`<div style="font-size:8px;color:var(--dim);margin-bottom:8px">📅 Exam: ${sub.examDate}${sub.examTime?' at '+sub.examTime:''}</div>`;
+let h=`<h3 style="color:${sub.color}">${sub.name}</h3>`;
+if(sub.group)h+=`<div style="font-size:7px;font-weight:800;letter-spacing:1.2px;color:${sub.color};opacity:.6;text-transform:uppercase;margin-bottom:4px">${sub.group}</div>`;
+if(sub.examDate)h+=`<div style="font-size:8px;color:var(--dim);margin-bottom:6px">📅 Exam: ${sub.examDate}${sub.examTime?' at '+sub.examTime:''}</div>`;
+// Resource link
+h+=`<div id="subResArea">`;
+if(sub.resourceUrl){h+=`<div style="display:flex;gap:4px;margin-bottom:8px"><a href="${sub.resourceUrl}" target="_blank" class="btn bp" style="flex:2;font-size:8px;text-decoration:none;text-align:center;background:${sub.color}">📖 Open Resources</a><button class="btn bs" style="flex:0 0 auto;font-size:8px" onclick="editResUrl('${sub.id}')">✏️</button></div>`}
+else{h+=`<button class="btn bs" style="width:100%;font-size:8px;margin-bottom:8px;color:var(--dim)" onclick="editResUrl('${sub.id}')">📖 + Add Resource Link</button>`}
+h+=`</div>`;
 // Vorlesungen
-if(st.showV&&sub.vCount>0){h+=`<div class="sub">VORLESUNGEN (${sub.vCount})</div>`;
+if(st.showV&&sub.vCount>0){h+=`<div class="sub">${tr('lectures')} (${sub.vCount})</div>`;
 for(let i=1;i<=sub.vCount;i++){const t=getTask(sub.id,'v',i);const done=t.done;const mins=Math.round((t.time||0)/60);
 h+=`<div class="tr${done?' done':''}" style="padding:6px 8px"><div class="t-chk" onclick="toggleTask('${sub.id}','v',${i});openSub('${sub.id}')" style="width:14px;height:14px;font-size:8px;border-color:${sub.color}">${done?'✓':''}</div>`;
-h+=`<div class="t-info"><div class="t-name" style="font-size:9px">Vorlesung ${i}</div>${mins?`<div class="t-sub">${mins} min</div>`:''}</div>`;
-h+=`<div class="t-acts"><span class="t-btn" onclick="startStudy('${sub.id}','v',${i})" title="Study">▶️</span>`;
-h+=`<span class="t-btn" onclick="exportAI('${sub.id}','v',${i})" title="AI">🤖</span>`;
-h+=`<span class="t-btn" onclick="uploadFile('${sub.id}','v',${i})" title="Upload">📎</span></div></div>`}}
+h+=`<div class="t-info"><div class="t-name" style="font-size:9px">${typeLabel('v')} ${i}</div>${mins?`<div class="t-sub">${mins} min</div>`:''}</div>`;
+h+=`<div class="t-acts"><span class="t-btn" onclick="startStudy('${sub.id}','v',${i})">▶️</span>`;
+h+=`<span class="t-btn" onclick="exportAI('${sub.id}','v',${i})">🤖</span>`;
+h+=`<span style="font-size:10px;cursor:pointer;padding:2px 3px;border-radius:3px;background:${t.file?'color-mix(in srgb,var(--ok) 18%,transparent)':'var(--card2)'};color:${t.file?'var(--ok)':'var(--dim)'}" onclick="uploadFile('${sub.id}','v',${i})" title="${t.file?t.file.name:'Attach file'}">${t.file?'📄':'📎'}</span></div></div>`}}
 // Übungen
-if(st.showU&&sub.uCount>0){h+=`<div class="sub">ÜBUNGEN (${sub.uCount})</div>`;
+if(st.showU&&sub.uCount>0){h+=`<div class="sub">${tr('practicals')} (${sub.uCount})</div>`;
 for(let i=1;i<=sub.uCount;i++){const t=getTask(sub.id,'u',i);const done=t.done;const mins=Math.round((t.time||0)/60);
 h+=`<div class="tr${done?' done':''}" style="padding:6px 8px"><div class="t-chk" onclick="toggleTask('${sub.id}','u',${i});openSub('${sub.id}')" style="width:14px;height:14px;font-size:8px;border-color:${sub.color}">${done?'✓':''}</div>`;
-h+=`<div class="t-info"><div class="t-name" style="font-size:9px">Übung ${i}</div>${mins?`<div class="t-sub">${mins} min</div>`:''}</div>`;
-h+=`<div class="t-acts"><span class="t-btn" onclick="startStudy('${sub.id}','u',${i})" title="Study">▶️</span>`;
-h+=`<span class="t-btn" onclick="exportAI('${sub.id}','u',${i})" title="AI">🤖</span>`;
-h+=`<span class="t-btn" onclick="uploadFile('${sub.id}','u',${i})" title="Upload">📎</span></div></div>`}}
+h+=`<div class="t-info"><div class="t-name" style="font-size:9px">${typeLabel('u')} ${i}</div>${mins?`<div class="t-sub">${mins} min</div>`:''}</div>`;
+h+=`<div class="t-acts"><span class="t-btn" onclick="startStudy('${sub.id}','u',${i})">▶️</span>`;
+h+=`<span class="t-btn" onclick="exportAI('${sub.id}','u',${i})">🤖</span>`;
+h+=`<span style="font-size:10px;cursor:pointer;padding:2px 3px;border-radius:3px;background:${t.file?'color-mix(in srgb,var(--ok) 18%,transparent)':'var(--card2)'};color:${t.file?'var(--ok)':'var(--dim)'}" onclick="uploadFile('${sub.id}','u',${i})" title="${t.file?t.file.name:'Attach file'}">${t.file?'📄':'📎'}</span></div></div>`}}
 // Past Exams
 const pes=sub.pastExams||[];
-if(pes.length){h+=`<div class="sub">PAST EXAMS (${pes.length})</div>`;
+if(pes.length&&st.showPE){h+=`<div class="sub">${tr('past_exams')} (${pes.length})</div>`;
 pes.forEach((pe,i)=>{const t=getTask(sub.id,'pe',i+1);const done=t.done;const mins=Math.round((t.time||0)/60);
 h+=`<div class="tr${done?' done':''}" style="padding:6px 8px"><div class="t-chk" onclick="toggleTask('${sub.id}','pe',${i+1});openSub('${sub.id}')" style="width:14px;height:14px;font-size:8px;border-color:var(--rc)">${done?'✓':''}</div>`;
 h+=`<div class="t-info"><div class="t-name" style="font-size:9px">📄 ${pe.name}</div><div class="t-sub">${pe.year||''}${mins?' · '+mins+' min':''}</div></div>`;
-h+=`<div class="t-acts"><span class="t-btn" onclick="startStudy('${sub.id}','pe',${i+1})" title="Study">▶️</span>`;
-h+=`<span class="t-btn" onclick="exportAI('${sub.id}','pe',${i+1})" title="AI">🤖</span>`;
-h+=`<span class="t-btn" onclick="uploadFile('${sub.id}','pe',${i+1})" title="Upload">📎</span></div></div>`})}
-h+=`<div class="mbb" style="margin-top:12px"><button class="btn bs" onclick="cM()">Close</button><button class="btn bp" onclick="cM();editSub('${sub.id}')">Edit Subject</button></div>`;
+h+=`<div class="t-acts"><span class="t-btn" onclick="startStudy('${sub.id}','pe',${i+1})">▶️</span>`;
+h+=`<span class="t-btn" onclick="exportAI('${sub.id}','pe',${i+1})">🤖</span>`;
+h+=`<span style="font-size:10px;cursor:pointer;padding:2px 3px;border-radius:3px;background:${t.file?'color-mix(in srgb,var(--ok) 18%,transparent)':'var(--card2)'};color:${t.file?'var(--ok)':'var(--dim)'}" onclick="uploadFile('${sub.id}','pe',${i+1})" title="${t.file?t.file.name:'Attach file'}">${t.file?'📄':'📎'}</span></div></div>`})}
+h+=`<div class="mbb" style="margin-top:12px"><button class="btn bs" onclick="cM()">Close</button><button class="btn bp" onclick="cM();editSub('${sub.id}')" style="background:${sub.color}">Edit Subject</button></div>`;
 h+=`<div style="margin-top:6px"><button class="btn bd" style="width:100%" onclick="delSub('${sub.id}')">Delete Subject</button></div>`;
 oM(h)}
+function editResUrl(subId){const el=document.getElementById('subResArea');if(!el)return;
+const sub=gSubs().find(s=>s.id===subId)||{resourceUrl:''};
+el.innerHTML=`<input id="resUrlInp" value="${sub.resourceUrl||''}" placeholder="https://moodle.uni.de/..." style="margin-bottom:4px"><div style="display:flex;gap:4px"><button class="btn bp" style="flex:1;font-size:8px" onclick="saveResUrl('${subId}')">Save</button><button class="btn bs" style="flex:1;font-size:8px" onclick="openSub('${subId}')">Cancel</button></div>`}
+function saveResUrl(subId){const url=(document.getElementById('resUrlInp')?.value||'').trim();const subs=gSubs();const s=subs.find(x=>x.id===subId);if(!s)return;s.resourceUrl=url;sSubs(subs);openSub(subId)}
 
 // ═══ ADD/EDIT SEMESTER ═══
-function addSem(){const st=gSett();const yr=new Date().getFullYear();
+function addSem(){const st=gSett();const yr=new Date().getFullYear();const unis=gUnis();
 let h=`<h3>Add Semester</h3>`;
 h+=`<label>NAME (optional)</label><input id="semN" placeholder="e.g. My First Semester">`;
 h+=`<label>TYPE</label><div class="opr"><button class="btn bp" id="semTS" onclick="document.getElementById('semTS').classList.add('bp');document.getElementById('semTW').classList.remove('bp');document.getElementById('semTW').classList.add('bs')" style="flex:1">☀️ ${st.hemi==='north'?'SS':'Summer'}</button><button class="btn bs" id="semTW" onclick="document.getElementById('semTW').classList.add('bp');document.getElementById('semTS').classList.remove('bp');document.getElementById('semTS').classList.add('bs')" style="flex:1">❄️ ${st.hemi==='north'?'WS':'Winter'}</button></div>`;
 h+=`<label>YEAR</label><input id="semY" type="number" value="${yr}" inputmode="numeric">`;
 h+=`<label>START DATE</label><input id="semSt" type="date">`;
 h+=`<label>END DATE</label><input id="semEn" type="date">`;
+if(unis.length){h+=`<label>UNIVERSITY</label><select id="semUni"><option value="">— Select —</option>${unis.map(u=>`<option value="${u}">${u}</option>`).join('')}</select>`}
 h+=`<div class="mbb"><button class="btn bs" onclick="cM()">Cancel</button><button class="btn bp" onclick="saveSem()">Add</button></div>`;
 oM(h)}
 function saveSem(){const sems=gSems();const isSummer=document.getElementById('semTS').classList.contains('bp');
 const sem={id:'sem_'+Date.now(),type:isSummer?'summer':'winter',year:parseInt(document.getElementById('semY').value)||new Date().getFullYear(),
-name:document.getElementById('semN').value.trim(),start:document.getElementById('semSt').value,end:document.getElementById('semEn').value};
+name:document.getElementById('semN').value.trim(),start:document.getElementById('semSt').value,end:document.getElementById('semEn').value,
+uni:document.getElementById('semUni')?.value||''};
 sems.push(sem);sSems(sems);activeSem=sem.id;cM();rS2();rT()}
 function editSem(id){const sem=gSems().find(s=>s.id===id);if(!sem)return;
 let h=`<h3>Edit Semester</h3>`;
@@ -312,12 +490,15 @@ activeSem=null;cM();rS2();rT()}
 function addSub(semId){
 let h=`<h3>Add Subject</h3>`;
 h+=`<label>SUBJECT NAME</label><input id="subN" placeholder="e.g. Linear Algebra" maxlength="60">`;
+h+=`<label>GROUP / SUBJECT AREA</label><select id="subGrp"><option value="">— None —</option>${GROUP_ORDER.map(g=>`<option value="${g}">${g}</option>`).join('')}<option value="Other">Other</option></select>`;
 h+=`<label>COLOR</label><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px" id="subCols">${COLS.map((c,i)=>`<div style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${i===0?'#FFF':'transparent'}" onclick="document.querySelectorAll('#subCols div').forEach(d=>d.style.borderColor='transparent');this.style.borderColor='#FFF';window._scol='${c}'" data-c="${c}"></div>`).join('')}</div>`;
 h+=`<div class="opr"><div style="flex:1"><label>VORLESUNGEN COUNT</label><input id="subVC" type="number" value="12" inputmode="numeric"></div><div style="flex:1"><label>ÜBUNGEN COUNT</label><input id="subUC" type="number" value="12" inputmode="numeric"></div></div>`;
+h+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px"><div><label>V DUR (h)</label><input id="subVDur" type="number" step="0.5" value="${gSett().defVDur||1}" inputmode="decimal"></div><div><label>Ü DUR (h)</label><input id="subUDur" type="number" step="0.5" value="${gSett().defUDur||1.5}" inputmode="decimal"></div><div><label>PE DUR (h)</label><input id="subPeDur" type="number" step="0.5" value="${gSett().defPeDur||2.5}" inputmode="decimal"></div></div>`;
 h+=`<label>EXAM DATE</label><input id="subExD" type="date">`;
 h+=`<label>EXAM TIME</label><input id="subExT" type="time">`;
 h+=`<label>VORLESUNGEN DEADLINE</label><input id="subVD" type="date">`;
 h+=`<label>ÜBUNGEN DEADLINE</label><input id="subUD" type="date">`;
+h+=`<label>RESOURCE URL (optional)</label><input id="subUrl" type="url" placeholder="https://moodle.uni.de/...">`;
 h+=`<label>UNIVERSITY</label><input id="subUni" value="${gSett().uni||''}" placeholder="e.g. TU München">`;
 h+=`<div class="sub" style="margin-top:4px">PAST EXAMS (optional)</div>`;
 h+=`<div id="peList"></div>`;
@@ -330,21 +511,30 @@ const row=document.createElement('div');row.className='opr';row.style.marginBott
 row.innerHTML=`<input placeholder="Exam name (e.g. SS24 Exam)" onchange="window._pes[${idx}].name=this.value" style="flex:2"><input placeholder="Year" type="number" onchange="window._pes[${idx}].year=this.value" style="flex:1;max-width:60px"><span style="cursor:pointer;padding:4px" onclick="window._pes.splice(${idx},1);this.parentElement.remove()">🗑️</span>`;
 el.appendChild(row)}
 function saveSub(semId){const n=document.getElementById('subN').value.trim();if(!n)return;
-const subs=gSubs();subs.push({id:'sub_'+Date.now(),semId,name:n,color:window._scol||COLS[0],
+const st=gSett();const subs=gSubs();
+const newSub={id:'sub_'+Date.now(),semId,name:n,color:window._scol||COLS[0],
+group:document.getElementById('subGrp').value,
 vCount:parseInt(document.getElementById('subVC').value)||0,uCount:parseInt(document.getElementById('subUC').value)||0,
+vDuration:parseFloat(document.getElementById('subVDur')?.value)||st.defVDur||1,
+uDuration:parseFloat(document.getElementById('subUDur')?.value)||st.defUDur||1.5,
+peDuration:parseFloat(document.getElementById('subPeDur')?.value)||st.defPeDur||2.5,
 examDate:document.getElementById('subExD').value,examTime:document.getElementById('subExT').value,
 vDeadline:document.getElementById('subVD').value,uDeadline:document.getElementById('subUD').value,
-uni:document.getElementById('subUni').value.trim(),pastExams:(window._pes||[]).filter(p=>p.name.trim()).map(p=>({name:p.name.trim(),year:p.year||''}))});
-sSubs(subs);const st=gSett();st.uni=document.getElementById('subUni').value.trim();sSett(st);cM();rS2();rT()}
+resourceUrl:document.getElementById('subUrl').value.trim(),
+uni:document.getElementById('subUni').value.trim(),pastExams:(window._pes||[]).filter(p=>p.name.trim()).map(p=>({name:p.name.trim(),year:p.year||''}))};
+subs.push(newSub);sSubs(subs);autoAddTasksToSchedule(newSub.id);st.uni=document.getElementById('subUni').value.trim();sSett(st);cM();rS2();rT()}
 function editSub(id){const sub=gSubs().find(s=>s.id===id);if(!sub)return;
 let h=`<h3>Edit Subject</h3>`;
 h+=`<label>NAME</label><input id="subN" value="${sub.name}" maxlength="60">`;
+h+=`<label>GROUP / SUBJECT AREA</label><select id="subGrp"><option value="">— None —</option>${GROUP_ORDER.map(g=>`<option value="${g}"${sub.group===g?' selected':''}>${g}</option>`).join('')}<option value="Other"${sub.group==='Other'?' selected':''}>Other</option></select>`;
 h+=`<label>COLOR</label><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px" id="subCols">${COLS.map(c=>`<div style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${c===sub.color?'#FFF':'transparent'}" onclick="document.querySelectorAll('#subCols div').forEach(d=>d.style.borderColor='transparent');this.style.borderColor='#FFF';window._scol='${c}'" data-c="${c}"></div>`).join('')}</div>`;
 h+=`<div class="opr"><div style="flex:1"><label>VORLESUNGEN</label><input id="subVC" type="number" value="${sub.vCount}" inputmode="numeric"></div><div style="flex:1"><label>ÜBUNGEN</label><input id="subUC" type="number" value="${sub.uCount}" inputmode="numeric"></div></div>`;
+h+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px"><div><label>V DUR (h)</label><input id="subVDur" type="number" step="0.5" value="${sub.vDuration||gSett().defVDur||1}" inputmode="decimal"></div><div><label>Ü DUR (h)</label><input id="subUDur" type="number" step="0.5" value="${sub.uDuration||gSett().defUDur||1.5}" inputmode="decimal"></div><div><label>PE DUR (h)</label><input id="subPeDur" type="number" step="0.5" value="${sub.peDuration||gSett().defPeDur||2.5}" inputmode="decimal"></div></div>`;
 h+=`<label>EXAM DATE</label><input id="subExD" type="date" value="${sub.examDate||''}">`;
 h+=`<label>EXAM TIME</label><input id="subExT" type="time" value="${sub.examTime||''}">`;
 h+=`<label>VORLESUNGEN DEADLINE</label><input id="subVD" type="date" value="${sub.vDeadline||''}">`;
 h+=`<label>ÜBUNGEN DEADLINE</label><input id="subUD" type="date" value="${sub.uDeadline||''}">`;
+h+=`<label>RESOURCE URL</label><input id="subUrl" type="url" value="${sub.resourceUrl||''}" placeholder="https://moodle.uni.de/...">`;
 h+=`<div class="sub" style="margin-top:4px">PAST EXAMS</div><div id="peList"></div>`;
 h+=`<button class="btn bs" style="font-size:7px;padding:4px 8px;margin-bottom:6px" onclick="addPERow()">+ Add Past Exam</button>`;
 h+=`<div class="mbb"><button class="btn bs" onclick="cM()">Cancel</button><button class="btn bp" onclick="saveEditSub('${id}')">Save</button></div>`;
@@ -355,11 +545,16 @@ row.innerHTML=`<input value="${pe.name}" placeholder="Exam name" onchange="windo
 peEl.appendChild(row)})}
 function saveEditSub(id){const subs=gSubs(),s=subs.find(x=>x.id===id);if(!s)return;
 s.name=document.getElementById('subN').value.trim()||s.name;s.color=window._scol||s.color;
+s.group=document.getElementById('subGrp').value;
 s.vCount=parseInt(document.getElementById('subVC').value)||0;s.uCount=parseInt(document.getElementById('subUC').value)||0;
+s.vDuration=parseFloat(document.getElementById('subVDur')?.value)||s.vDuration||1;
+s.uDuration=parseFloat(document.getElementById('subUDur')?.value)||s.uDuration||1.5;
+s.peDuration=parseFloat(document.getElementById('subPeDur')?.value)||s.peDuration||2.5;
 s.examDate=document.getElementById('subExD').value;s.examTime=document.getElementById('subExT').value;
 s.vDeadline=document.getElementById('subVD').value;s.uDeadline=document.getElementById('subUD').value;
+s.resourceUrl=document.getElementById('subUrl').value.trim();
 s.pastExams=(window._pes||[]).filter(p=>p.name&&p.name.trim()).map(p=>({name:p.name.trim(),year:p.year||''}));
-sSubs(subs);cM();rS2();rT()}
+sSubs(subs);autoAddTasksToSchedule(id);cM();rS2();rT()}
 function delSub(id){if(!confirm('Delete this subject and all its progress?'))return;
 const subs=gSubs().filter(s=>s.id!==id);sSubs(subs);
 const p=gProg();delete p[id];sProg(p);cM();rS2();rT()}
@@ -372,25 +567,69 @@ studyTimer=setInterval(()=>{studyElapsed=Math.round((Date.now()-studyStart)/1000
 renderStudy()}
 function renderStudy(){const sub=gSubs().find(s=>s.id===studySub);if(!sub)return;
 const mins=Math.floor(studyElapsed/60),secs=studyElapsed%60;
-const typeLabel=studyType==='v'?'Vorlesung':'Übung';
-let h=`<div class="study-subject">${sub.name}</div>`;
-h+=`<div class="study-task">${typeLabel} ${studyNum}</div>`;
-h+=`<div class="study-timer">${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</div>`;
-h+=`<div style="display:flex;gap:8px;margin-top:20px">`;
+const tl=typeLabel(studyType);
+const ol=document.getElementById('studyOL');
+ol.style.background=`color-mix(in srgb,${sub.color} 8%,var(--bg))`;
+const inSession=sessionIdx>=0;
+let h=`<div style="font-size:11px;font-weight:800;letter-spacing:.8px;color:${sub.color};text-align:center">${sub.name}</div>`;
+if(sub.group)h+=`<div style="font-size:7px;font-weight:800;letter-spacing:1.5px;color:${sub.color};opacity:.55;text-align:center;text-transform:uppercase;margin-bottom:4px">${sub.group}</div>`;
+if(inSession)h+=`<div style="font-size:7px;color:var(--dim);text-align:center;margin-bottom:4px">${sessionIdx+1} / ${sessionTasks.length}</div>`;
+h+=`<div style="font-size:14px;font-weight:700;color:var(--dim);letter-spacing:.3px;text-align:center">${tl} ${studyNum}</div>`;
+h+=`<div class="study-timer" style="color:${sub.color}">${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</div>`;
+h+=`<div style="display:flex;gap:8px;margin-top:24px;flex-wrap:wrap;justify-content:center">`;
+if(inSession){
+h+=`<button class="btn bd" onclick="endSession()" style="padding:12px 24px;font-size:11px">✕ End</button>`;
+h+=`<button onclick="sessionDone()" style="padding:12px 24px;font-size:11px;background:${sub.color};color:#FFF;border:none;border-radius:7px;cursor:pointer;font-weight:800">✓ Done${sessionIdx<sessionTasks.length-1?' + Next →':''}</button>`;
+if(sessionIdx<sessionTasks.length-1)h+=`<button onclick="sessionSkip()" style="padding:8px 16px;font-size:9px;background:transparent;color:var(--dim);border:1px solid var(--muted);border-radius:7px;cursor:pointer;font-weight:800">⏭ Skip</button>`;
+}else{const nextN=findNextTaskNum(studySub,studyType,studyNum);
 h+=`<button class="btn bd" onclick="endStudy(false)" style="padding:12px 24px;font-size:11px">✕ Cancel</button>`;
-h+=`<button class="btn bp" onclick="endStudy(true)" style="padding:12px 24px;font-size:11px">✓ Done</button>`;
+h+=`<button onclick="endStudy(true)" style="padding:12px 24px;font-size:11px;background:${sub.color};color:#FFF;border:none;border-radius:7px;cursor:pointer;font-weight:800">✓ Done</button>`;
+if(nextN){const contIcon=studyType==='v'?'📖':studyType==='u'?'📝':'📄';h+=`<button onclick="continueToNext()" style="padding:6px 11px;font-size:8px;background:transparent;color:${sub.color};border:1px solid ${sub.color};border-radius:7px;cursor:pointer;font-weight:700">${contIcon} ${typeLabel(studyType)} ${nextN} →</button>`;}}
 h+=`</div>`;
-h+=`<div style="margin-top:16px"><button class="btn bs" onclick="exportAI('${studySub}','${studyType}',${studyNum})" style="font-size:8px;padding:6px 12px">🤖 Export for AI Tutor</button></div>`;
-document.getElementById('studyOL').innerHTML=h}
+h+=`<div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;justify-content:center">`;
+h+=`<button class="btn bs" onclick="exportAI('${studySub}','${studyType}',${studyNum})" style="font-size:8px;padding:6px 12px">🤖 AI Tutor</button>`;
+if(sub.resourceUrl)h+=`<a href="${sub.resourceUrl}" target="_blank" class="btn bs" style="font-size:8px;padding:6px 12px;text-decoration:none;color:${sub.color};border-color:${sub.color}">📖 Resources</a>`;
+h+=`</div>`;
+ol.innerHTML=h}
 function endStudy(save){clearInterval(studyTimer);studyActive=false;
 document.getElementById('studyOL').style.display='none';
-if(save&&studyElapsed>5){// Save study time
-const existing=getTask(studySub,studyType,studyNum);
+if(save&&studyElapsed>5){const existing=getTask(studySub,studyType,studyNum);
 setTask(studySub,studyType,studyNum,{time:(existing.time||0)+studyElapsed});
-// Log session
 const log=gSLog();if(!log[TD])log[TD]=[];
 log[TD].push({subId:studySub,type:studyType,num:studyNum,duration:studyElapsed,start:new Date(studyStart).toTimeString().slice(0,5),end:new Date().toTimeString().slice(0,5)});
-sSLog(log);rT();rD()}}
+sSLog(log);if(sessionIdx<0){rT();rD()}}}
+
+// ═══ CONTINUE TO NEXT + SESSION ═══
+function findNextTaskNum(subId,type,num){const sub=gSubs().find(s=>s.id===subId);if(!sub)return null;
+const maxN=type==='v'?sub.vCount:type==='u'?sub.uCount:(sub.pastExams||[]).length;
+for(let n=num+1;n<=maxN;n++){const t=getTask(subId,type,n);if(!t.done)return n}return null}
+function continueToNext(){if(studyElapsed>5){const ex=getTask(studySub,studyType,studyNum);setTask(studySub,studyType,studyNum,{time:(ex.time||0)+studyElapsed});const log=gSLog();if(!log[TD])log[TD]=[];log[TD].push({subId:studySub,type:studyType,num:studyNum,duration:studyElapsed,start:new Date(studyStart).toTimeString().slice(0,5),end:new Date().toTimeString().slice(0,5)});sSLog(log)}
+const nextN=findNextTaskNum(studySub,studyType,studyNum);if(!nextN){endStudy(false);return}
+studyNum=nextN;studyElapsed=0;studyStart=Date.now();renderStudy()}
+function openStudySession(){const sem=getActiveSem();if(!sem)return;
+const sched=gSched();const schedTasks=(sched.days&&sched.days[TD])||[];
+const subs=semSubs(sem.id);const st=gSett();let tasks=[];
+if(schedTasks.length){schedTasks.forEach(t2=>{const sub=subs.find(s=>s.id===t2.subId);if(!sub)return;const t=getTask(t2.subId,t2.type,t2.num);if(t.done)return;let label=typeLabel(t2.type)+' '+t2.num;if(t2.type==='pe'){const pe=(sub.pastExams||[])[t2.num-1];if(pe)label='📄 '+pe.name}tasks.push({sub,type:t2.type,num:t2.num,label})})}
+if(!tasks.length){alert('No tasks for today!');return}
+if((st.taskOrder||'parallel')==='parallel'){tasks.sort((a,b)=>{const ao=a.type==='v'?0:a.type==='u'?1:2;const bo=b.type==='v'?0:b.type==='u'?1:2;return ao!==bo?ao-bo:a.num-b.num})}
+window._sessTasks=[...tasks];let h=`<h3>▶️ Study Session</h3>`;
+h+=`<div style="font-size:8px;color:var(--dim);margin-bottom:8px">Uncheck tasks to skip. Use ▲▼ to reorder.</div>`;
+h+=`<div id="sessTaskList"></div>`;
+h+=`<div class="mbb"><button class="btn bs" onclick="cM()">Cancel</button><button class="btn bp" onclick="startStudySession()">▶ Start</button></div>`;
+oM(h);renderSessTaskList()}
+function renderSessTaskList(){const el=document.getElementById('sessTaskList');if(!el)return;
+const tasks=window._sessTasks||[];let html='';
+tasks.forEach((t,i)=>{html+=`<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--card2);border-radius:6px;margin-bottom:3px">`;
+html+=`<input type="checkbox" class="sessCB" data-i="${i}" checked style="width:auto;margin:0">`;
+html+=`<div style="flex:1;min-width:0"><div style="font-size:9px;font-weight:800">${t.label}</div><div style="font-size:7px;color:${t.sub.color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.sub.name}</div></div>`;
+html+=`<div style="display:flex;gap:2px"><button onclick="sessMove(${i},-1)" style="background:var(--card);border:1px solid var(--muted);border-radius:3px;cursor:pointer;font-size:9px;padding:1px 4px;color:var(--dim)">▲</button><button onclick="sessMove(${i},1)" style="background:var(--card);border:1px solid var(--muted);border-radius:3px;cursor:pointer;font-size:9px;padding:1px 4px;color:var(--dim)">▼</button></div>`;
+html+=`</div>`});el.innerHTML=html}
+function sessMove(i,dir){const tasks=window._sessTasks||[];const j=i+dir;if(j<0||j>=tasks.length)return;[tasks[i],tasks[j]]=[tasks[j],tasks[i]];renderSessTaskList()}
+function startStudySession(){const tasks=window._sessTasks||[];const checked=Array.from(document.querySelectorAll('.sessCB:checked')).map(c=>parseInt(c.dataset.i));if(!checked.length){alert('Select at least one task');return}sessionTasks=checked.map(i=>tasks[i]);sessionIdx=0;cM();loadSessionTask()}
+function loadSessionTask(){if(sessionIdx>=sessionTasks.length){endSession(true);return}const t=sessionTasks[sessionIdx];startStudy(t.sub.id,t.type,t.num)}
+function sessionDone(){if(studyElapsed>5){const ex=getTask(studySub,studyType,studyNum);setTask(studySub,studyType,studyNum,{done:true,time:(ex.time||0)+studyElapsed});const log=gSLog();if(!log[TD])log[TD]=[];log[TD].push({subId:studySub,type:studyType,num:studyNum,duration:studyElapsed,start:new Date(studyStart).toTimeString().slice(0,5),end:new Date().toTimeString().slice(0,5)});sSLog(log)}else{setTask(studySub,studyType,studyNum,{done:true})}clearInterval(studyTimer);studyActive=false;sessionIdx++;loadSessionTask()}
+function sessionSkip(){if(studyElapsed>5){const ex=getTask(studySub,studyType,studyNum);setTask(studySub,studyType,studyNum,{time:(ex.time||0)+studyElapsed});const log=gSLog();if(!log[TD])log[TD]=[];log[TD].push({subId:studySub,type:studyType,num:studyNum,duration:studyElapsed,start:new Date(studyStart).toTimeString().slice(0,5),end:new Date().toTimeString().slice(0,5)});sSLog(log)}clearInterval(studyTimer);studyActive=false;sessionIdx++;loadSessionTask()}
+function endSession(completed){clearInterval(studyTimer);studyActive=false;document.getElementById('studyOL').style.display='none';sessionTasks=[];sessionIdx=-1;rT();rS2();rD();if(completed)setTimeout(()=>alert('Session complete! Great work! 🎉'),200)}
 
 // ═══ FILE UPLOAD ═══
 function uploadFile(subId,type,num){const inp=document.createElement('input');inp.type='file';inp.accept='.pdf,.png,.jpg,.jpeg,.doc,.docx,.txt';
@@ -400,40 +639,76 @@ alert('File attached: '+f.name)};r.readAsDataURL(f)};inp.click()}
 
 // ═══ AI EXPORT ═══
 function exportAI(subId,type,num){const sub=gSubs().find(s=>s.id===subId);if(!sub)return;
-const st=gSett();const typeLabel=type==='v'?'Vorlesung':type==='u'?'Übung':'Past Exam';
+const st=gSett();const typeLbl=type==='v'?'Vorlesung':type==='u'?'Übung':'Past Exam';
 const task=getTask(subId,type,num);
-let prompt=`═══ AI TUTOR SESSION ═══\nSubject: ${sub.name}\nTask: ${typeLabel} ${num}\nUniversity: ${sub.uni||st.uni||'Not specified'}\nLanguage: ${st.lang==='de'?'German (Deutsch)':st.lang==='en'?'English':'English'}\nSemester: ${getActiveSem()?.name||''}\n\n═══ INSTRUCTIONS ═══\nYou are a patient, thorough university tutor. Your job is to teach this material as if the student is encountering it for the very first time.\n\nRULES:\n1. Explain every concept from scratch — assume zero prior knowledge\n2. Define every variable, symbol, and term before using it\n3. Use simple analogies and real-world examples\n4. Break complex ideas into small, numbered steps\n5. After explaining a concept, give a quick check question\n6. Be concise but thorough — no fluff, pure teaching\n7. Respond in ${st.lang==='de'?'German':'English'}\n\nStart by saying: "Ready to work through ${typeLabel} ${num} for ${sub.name}. Send me the first question or topic and I'll explain it step by step."\n\nWhen the student sends a question:\n- Read it carefully\n- Identify what concepts are needed\n- Explain each concept from the ground up\n- Show the solution step by step\n- Explain WHY each step works, not just HOW\n`;
+let prompt=`═══ AI TUTOR SESSION ═══\nSubject: ${sub.name}\nTask: ${typeLbl} ${num}\nUniversity: ${sub.uni||st.uni||'Not specified'}\nLanguage: ${st.lang==='de'?'German (Deutsch)':st.lang==='en'?'English':'English'}\nSemester: ${getActiveSem()?.name||''}\n\n═══ INSTRUCTIONS ═══\nYou are a patient, thorough university tutor. Your job is to teach this material as if the student is encountering it for the very first time.\n\nRULES:\n1. Explain every concept from scratch — assume zero prior knowledge\n2. Define every variable, symbol, and term before using it\n3. Use simple analogies and real-world examples\n4. Break complex ideas into small, numbered steps\n5. After explaining a concept, give a quick check question\n6. Be concise but thorough — no fluff, pure teaching\n7. Respond in ${st.lang==='de'?'German':'English'}\n\nStart by saying: "Ready to work through ${typeLbl} ${num} for ${sub.name}. Send me the first question or topic and I'll explain it step by step."\n\nWhen the student sends a question:\n- Read it carefully\n- Identify what concepts are needed\n- Explain each concept from the ground up\n- Show the solution step by step\n- Explain WHY each step works, not just HOW\n`;
 if(task.file){prompt+=`\n═══ ATTACHED FILE ═══\nFilename: ${task.file.name}\n(File data is attached — analyze its contents)\n`}
 // Download as text file
 const blob=new Blob([prompt],{type:'text/plain'});const url=URL.createObjectURL(blob);
-const a=document.createElement('a');a.href=url;a.download=`AI-Tutor_${sub.name.replace(/\s+/g,'-')}_${typeLabel}-${num}.txt`;
+const a=document.createElement('a');a.href=url;a.download=`AI-Tutor_${sub.name.replace(/\s+/g,'-')}_${typeLbl}-${num}.txt`;
 a.click();URL.revokeObjectURL(url)}
 
 // ═══ DATA TAB ═══
-function rD(){const el=document.getElementById('dS');const log=gSLog();const subs=gSubs();const sem=getActiveSem();
+function getRangeStart(range){const now=new Date(TD);
+if(range==='1w'){const d=new Date(now);d.setDate(d.getDate()-6);return ds(d)}
+if(range==='1m'){const d=new Date(now);d.setMonth(d.getMonth()-1);return ds(d)}
+if(range==='3m'){const d=new Date(now);d.setMonth(d.getMonth()-3);return ds(d)}
+if(range==='6m'){const d=new Date(now);d.setMonth(d.getMonth()-6);return ds(d)}
+if(range==='1y'){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return ds(d)}
+if(range==='ytd'){return new Date().getFullYear()+'-01-01'}
+return '2000-01-01'}
+function getRangeDays(range){const start=getRangeStart(range);const now=new Date(TD);const startDate=new Date(start);return Math.ceil((now-startDate)/(864e5))+1}
+function rD(){const el=document.getElementById('dS');const fullLog=gSLog();const subs=gSubs();const sem=getActiveSem();const st=gSett();
+// Filter log by selected range
+const rangeStart=getRangeStart(dataRange);
+const log={};Object.entries(fullLog).forEach(([d,v])=>{if(d>=rangeStart&&d<=TD)log[d]=v});
 let h=`<div style="padding:10px 0 2px"><h2>📊 Analytics</h2></div>`;
-// Total study time
+// Range selector
+const ranges=[['1w','1W'],['1m','1M'],['3m','3M'],['6m','6M'],['1y','1Y'],['ytd','YTD']];
+h+=`<div style="display:flex;gap:2px;margin-bottom:8px;background:var(--card2);padding:3px;border-radius:7px">`;
+ranges.forEach(([r,lbl])=>{h+=`<div onclick="dataRange='${r}';rD()" style="flex:1;text-align:center;padding:5px 2px;border-radius:5px;font-size:8px;font-weight:800;cursor:pointer;letter-spacing:.3px;transition:.2s;${dataRange===r?'background:var(--acc);color:#FFF':'color:var(--dim)'}">${lbl}</div>`});
+h+=`</div>`;
+// Total study time (filtered)
 let totalSecs=0;Object.values(log).forEach(day=>day.forEach(e=>totalSecs+=e.duration||0));
 const totalHrs=Math.floor(totalSecs/3600),totalMins=Math.floor((totalSecs%3600)/60);
 h+=`<div style="display:flex;gap:6px;margin-bottom:8px">`;
 h+=`<div class="an-card" style="flex:1;text-align:center"><div class="an-val">${totalHrs}h ${totalMins}m</div><div class="an-label">TOTAL STUDY TIME</div></div>`;
 const daysStudied=Object.keys(log).length;
 h+=`<div class="an-card" style="flex:1;text-align:center"><div class="an-val">${daysStudied}</div><div class="an-label">DAYS STUDIED</div></div></div>`;
-// Heatmap (last 90 days)
-h+=`<div class="sub">STUDY ACTIVITY (90 DAYS)</div>`;
-h+=`<div class="an-card"><div class="hm-grid">`;
-for(let i=89;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const dk=ds(d);
-const dayLog=log[dk]||[];const mins=dayLog.reduce((s,e)=>s+(e.duration||0),0)/60;
-const lvl=mins===0?'':mins<30?'l1':mins<60?'l2':mins<120?'l3':'l4';
-h+=`<div class="hm-cell ${lvl}" title="${dk}: ${Math.round(mins)}min"></div>`}
-h+=`</div>`;
-h+=`<div style="display:flex;justify-content:flex-end;gap:3px;align-items:center;margin-top:4px;font-size:6px;color:var(--dim)">Less <div class="hm-cell" style="width:8px;height:8px"></div><div class="hm-cell l1" style="width:8px;height:8px"></div><div class="hm-cell l2" style="width:8px;height:8px"></div><div class="hm-cell l3" style="width:8px;height:8px"></div><div class="hm-cell l4" style="width:8px;height:8px"></div> More</div></div>`;
-// Per-subject breakdown
+// Heatmap — adaptive cell size per range
+const hmDays=getRangeDays(dataRange);
+const rangeLabels={'1w':'7 DAYS','1m':'30 DAYS','3m':'90 DAYS','6m':'180 DAYS','1y':'1 YEAR','ytd':'THIS YEAR'};
+h+=`<div class="sub">STUDY ACTIVITY (${rangeLabels[dataRange]||''})</div>`;
+const t1=st.hmT1||30,t2=st.hmT2||60,t3=st.hmT3||120;
+const legend=`<div style="display:flex;justify-content:flex-end;gap:3px;align-items:center;margin-top:6px;font-size:6px;color:var(--dim)">Less <div class="hm-cell" style="width:8px;height:8px"></div><div class="hm-cell l1" style="width:8px;height:8px"></div><div class="hm-cell l2" style="width:8px;height:8px"></div><div class="hm-cell l3" style="width:8px;height:8px"></div><div class="hm-cell l4" style="width:8px;height:8px"></div> More</div>`;
+if(dataRange==='1w'){
+h+=`<div class="an-card"><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">`;
+const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const dk=ds(d);
+const dayLog=fullLog[dk]||[];const mins=Math.round(dayLog.reduce((s,e)=>s+(e.duration||0),0)/60);
+const lvl=mins===0?'':mins<t1?'l1':mins<t2?'l2':mins<t3?'l3':'l4';
+const isToday=dk===TD;
+h+=`<div style="text-align:center">`;
+h+=`<div style="font-size:7px;font-weight:800;color:${isToday?'var(--acc)':'var(--dim)'};margin-bottom:3px">${dayNames[d.getDay()]}</div>`;
+h+=`<div class="hm-cell ${lvl}" style="width:100%;height:38px;border-radius:6px" title="${dk}: ${mins}min"></div>`;
+h+=`<div style="font-size:8px;font-weight:800;color:${lvl?'var(--text)':'var(--dim)'};margin-top:3px">${mins?mins+'m':'—'}</div>`;
+h+=`<div style="font-size:6px;color:var(--dim)">${d.getDate()}</div>`;
+h+=`</div>`}
+h+=`</div>${legend}</div>`;}
+else{const cellSz={'1m':16,'3m':12,'6m':10,'1y':7,'ytd':10};const sz=cellSz[dataRange]||12;const gap=sz<=8?1:sz<=10?2:3;
+h+=`<div class="an-card"><div class="hm-grid" style="gap:${gap}px">`;
+for(let i=hmDays-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const dk=ds(d);
+const dayLog=fullLog[dk]||[];const mins=dayLog.reduce((s,e)=>s+(e.duration||0),0)/60;
+const lvl=mins===0?'':mins<t1?'l1':mins<t2?'l2':mins<t3?'l3':'l4';
+h+=`<div class="hm-cell ${lvl}" style="width:${sz}px;height:${sz}px;border-radius:${sz<=8?1:2}px" title="${dk}: ${Math.round(mins)}min"></div>`}
+h+=`</div>${legend}</div>`;}
+// Per-subject breakdown (filtered by range)
 if(sem){const semSb=semSubs(sem.id);
 if(semSb.length){h+=`<div class="sub">TIME PER SUBJECT</div>`;
-semSb.forEach(sub=>{const mins=Math.round(subStudyTime(sub.id)/60);const prog=subProgress(sub);const pct=prog.total?Math.round(prog.done/prog.total*100):0;
-h+=`<div class="an-card" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:10px;font-weight:800">${sub.name}</div><div style="font-size:7px;color:var(--dim)">${prog.done}/${prog.total} tasks · ${pct}%</div></div><div style="text-align:right"><div style="font-size:14px;font-weight:900;color:${sub.color}">${mins}m</div><div style="font-size:6px;color:var(--dim)">studied</div></div></div>`})}}
-// Average per day
+semSb.forEach(sub=>{let subSecs=0;Object.values(log).forEach(day=>day.forEach(e=>{if(e.subId===sub.id)subSecs+=e.duration||0}));
+const mins=Math.round(subSecs/60);const prog=subProgress(sub);const pct=prog.total?Math.round(prog.done/prog.total*100):0;
+h+=`<div class="an-card" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;active:opacity:.8" onclick="openSubChart('${sub.id}')"><div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sub.name}</div><div style="font-size:7px;color:var(--dim)">${prog.done}/${prog.total} tasks · ${pct}%</div></div><div style="text-align:right;flex-shrink:0;margin-left:8px"><div style="font-size:14px;font-weight:900;color:${sub.color}">${mins}m</div><div style="font-size:6px;color:${sub.color};opacity:.6">📈 TAP</div></div></div>`})}}
+// Averages (filtered by range)
 if(daysStudied>0){const avg=Math.round(totalSecs/60/daysStudied);
 h+=`<div class="sub">AVERAGES</div>`;
 h+=`<div class="an-card"><div style="display:flex;justify-content:space-around;text-align:center">`;
@@ -445,17 +720,119 @@ h+=`<div><div class="an-val" style="font-size:16px">${avgSess}m</div><div class=
 h+=`</div></div>`}
 el.innerHTML=h}
 
+// ═══ SUBJECT CHART ═══
+function openSubChart(subId){
+const sub=gSubs().find(s=>s.id===subId);if(!sub)return;
+const fullLog=gSLog();const hmDays=getRangeDays(dataRange);
+const rangeLabels={'1w':'7 days','1m':'30 days','3m':'90 days','6m':'180 days','1y':'1 year','ytd':'This year'};
+// Build daily data
+const data=[];
+for(let i=hmDays-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const dk=ds(d);
+const dl=(fullLog[dk]||[]).filter(e=>e.subId===subId);
+const mins=Math.round(dl.reduce((s,e)=>s+(e.duration||0),0)/60);
+data.push({date:dk,mins,dl})}
+const hasData=data.some(d=>d.mins>0);
+// SVG dimensions
+const W=340,H=180,PL=30,PT=14,PR=8,PB=26;
+const CW=W-PL-PR,CH=H-PT-PB;
+const n=data.length;
+const maxM=Math.max(...data.map(d=>d.mins),20);
+const xP=i=>PL+(n>1?i/(n-1):0.5)*CW;
+const yP=v=>PT+CH-(v/maxM)*CH;
+let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;overflow:visible" xmlns="http://www.w3.org/2000/svg">`;
+svg+=`<defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${sub.color}" stop-opacity="0.28"/><stop offset="100%" stop-color="${sub.color}" stop-opacity="0.03"/></linearGradient></defs>`;
+// Grid lines + y labels
+for(let g=0;g<=3;g++){const gy=PT+(CH/3)*g;const gv=Math.round(maxM*(1-g/3));
+svg+=`<line x1="${PL}" y1="${gy}" x2="${W-PR}" y2="${gy}" stroke="var(--muted)" stroke-width="1"/>`;
+svg+=`<text x="${PL-3}" y="${gy+3}" text-anchor="end" font-size="7" fill="var(--dim)">${gv}</text>`}
+if(hasData){
+// Area fill
+let aP=`M${xP(0)},${PT+CH}`;data.forEach((_,i)=>aP+=` L${xP(i)},${yP(data[i].mins)}`);
+aP+=` L${xP(n-1)},${PT+CH} Z`;
+svg+=`<path d="${aP}" fill="url(#cg)"/>`;
+// Line
+let lP=`M${xP(0)},${yP(data[0].mins)}`;
+data.forEach((_,i)=>{if(i>0)lP+=` L${xP(i)},${yP(data[i].mins)}`});
+svg+=`<path d="${lP}" fill="none" stroke="${sub.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+// Dots (only on days with study)
+const dr=n>90?2:n>30?3:4;
+data.forEach((d,i)=>{if(d.mins>0){
+svg+=`<circle cx="${xP(i)}" cy="${yP(d.mins)}" r="${dr}" fill="${sub.color}" stroke="var(--card)" stroke-width="2" style="cursor:pointer" onclick="showChartTip('${subId}','${d.date}')"/>`}})}
+// X-axis labels
+const step=Math.max(1,Math.floor(n/5));
+const dNames=['Su','Mo','Tu','We','Th','Fr','Sa'];
+data.forEach((d,i)=>{if(i===0||i===n-1||i%step===0){
+const lbl=n<=7?dNames[new Date(d.date+'T12:00:00').getDay()]+' '+parseInt(d.date.slice(8)):d.date.slice(5);
+const anchor=i===0?'start':i===n-1?'end':'middle';
+svg+=`<text x="${xP(i)}" y="${H-3}" text-anchor="${anchor}" font-size="7" fill="var(--dim)">${lbl}</text>`}});
+svg+=`</svg>`;
+let h=`<h3 style="color:${sub.color}">${sub.name}</h3>`;
+if(sub.group)h+=`<div style="font-size:7px;font-weight:800;letter-spacing:1.2px;color:${sub.color};opacity:.55;text-transform:uppercase;margin-bottom:6px">${sub.group}</div>`;
+h+=`<div style="font-size:7px;color:var(--dim);margin-bottom:8px">Daily study time stacked · ${rangeLabels[dataRange]||''}</div>`;
+if(!hasData){h+=`<div style="text-align:center;padding:30px 0;color:var(--dim);font-size:9px">No study sessions recorded yet</div>`}
+else{h+=`<div class="an-card" style="padding:10px 8px">${svg}</div>`;
+h+=`<div id="chartTipEl" style="min-height:54px;padding:8px 10px;margin-top:6px;background:var(--card2);border-radius:7px;font-size:8px;color:var(--dim)">Tap a dot to see session details</div>`}
+h+=`<div class="mbb"><button class="btn bs" onclick="cM()">Close</button></div>`;
+oM(h)}
+function showChartTip(subId,date){
+const el=document.getElementById('chartTipEl');if(!el)return;
+const sub=gSubs().find(s=>s.id===subId);
+const dl=(gSLog()[date]||[]).filter(e=>e.subId===subId);
+if(!dl.length){el.innerHTML=`<span style="color:var(--dim)">No sessions on this day</span>`;return}
+const dayStr=new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+let html=`<div style="font-size:9px;font-weight:800;color:var(--text);margin-bottom:4px">${dayStr}</div>`;
+let total=0;
+dl.forEach(e=>{const tl=typeLabel(e.type);
+const m=Math.round((e.duration||0)/60);total+=m;
+html+=`<div style="font-size:8px;color:var(--dim)">• ${tl} ${e.num} — ${m} min</div>`});
+html+=`<div style="font-size:9px;font-weight:800;margin-top:4px;color:${sub?.color||'var(--acc)'}">Total: ${total} min</div>`;
+el.innerHTML=html}
+
 // ═══ SETTINGS TAB ═══
 function rX(){const el=document.getElementById('xS');const st=gSett();
 let h=`<div style="padding:10px 0 2px"><h2>⚙️ Settings</h2></div>`;
-h+=`<div class="sub">DISPLAY</div>`;
+h+=`<div class="sub">🤖 AI SETUP</div>`;
+h+=`<div style="background:var(--muted);border-radius:10px;padding:10px;margin-bottom:6px">`;
+h+=`<div style="font-size:9px;font-weight:800;color:var(--text);margin-bottom:3px">New? Set up your schedule in minutes</div>`;
+h+=`<div style="font-size:8px;color:var(--dim);margin-bottom:8px">Get an AI prompt → paste into ChatGPT or Claude → answer questions → import the JSON it gives you.</div>`;
+h+=`<div style="display:flex;gap:4px;margin-bottom:8px">`;
+h+=`<button class="btn bp" style="flex:1;font-size:8px" onclick="downloadAIPrompt()">📋 Get AI Prompt</button>`;
+h+=`<button class="btn bs" style="flex:1;font-size:8px" onclick="document.getElementById('importSetupFile').click()">📂 Import JSON</button>`;
+h+=`</div>`;
+h+=`<input type="file" id="importSetupFile" accept=".json" style="display:none" onchange="importSetupJSON(event)">`;
+h+=`<div style="font-size:7px;color:var(--dim);line-height:1.7">`;
+h+=`<b style="color:var(--text)">①</b> Click <b>Get AI Prompt</b> — copy the whole text<br>`;
+h+=`<b style="color:var(--text)">②</b> Paste into <b>ChatGPT</b> or <b>Claude</b> and answer their questions<br>`;
+h+=`<b style="color:var(--text)">③</b> Save the JSON the AI outputs as a <b>.json</b> file<br>`;
+h+=`<b style="color:var(--text)">④</b> Click <b>Import JSON</b> — your full schedule loads instantly</div>`;
+h+=`</div>`;
+h+=`<div class="sub">${tr('display')}</div>`;
 h+=`<div class="sr"><div><div class="lbl">🌙 Dark Mode</div><div class="dsc">Toggle light/dark theme</div></div><div class="tog ${st.theme==='dark'?'on':''}" onclick="togTheme()"></div></div>`;
 h+=`<div class="sr"><div><div class="lbl">📺 Retro Mode</div><div class="dsc">Classic Windows look</div></div><div class="tog ${st.retro?'on':''}" onclick="togRetro()"></div></div>`;
-h+=`<div class="sub">ACADEMIC</div>`;
+h+=`<label style="margin-top:6px">🌐 LANGUAGE</label><select onchange="togLang(this.value)" style="margin-bottom:6px">${Object.entries(LANGS).map(([code,l])=>`<option value="${code}"${st.lang===code?' selected':''}>${l.lang_name}</option>`).join('')}</select>`;
+h+=`<div class="sub">UNIVERSITIES</div>`;
+const unis=gUnis();unis.forEach((u,i)=>{h+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input value="${u}" onchange="updUni(${i},this.value)" style="flex:1;margin:0;font-size:10px;padding:6px 8px"><button onclick="rmUni(${i})" class="btn bd" style="padding:4px 8px;font-size:8px;flex-shrink:0">✕</button></div>`});
+h+=`<button class="btn bs" style="width:100%;font-size:8px;margin-bottom:6px" onclick="addUniEntry()">+ Add University</button>`;
+h+=`<div class="sub">${tr('academic')}</div>`;
 h+=`<div class="sr"><div><div class="lbl">🌍 Hemisphere</div><div class="dsc">${st.hemi==='north'?'Northern (SS/WS)':'Southern (S1/S2)'}</div></div><div class="tog ${st.hemi==='south'?'on':''}" onclick="togHemi()"></div></div>`;
-h+=`<div class="sr"><div><div class="lbl">📖 Show Vorlesungen</div><div class="dsc">Display lecture tasks</div></div><div class="tog ${st.showV?'on':''}" onclick="togSett('showV')"></div></div>`;
-h+=`<div class="sr"><div><div class="lbl">📝 Show Übungen</div><div class="dsc">Display exercise tasks</div></div><div class="tog ${st.showU?'on':''}" onclick="togSett('showU')"></div></div>`;
-h+=`<label style="margin-top:10px">UNIVERSITY</label><input value="${st.uni||''}" onchange="const s=gSett();s.uni=this.value.trim();sSett(s)" placeholder="e.g. TU München">`;
+h+=`<div class="sr"><div><div class="lbl">📋 Task Order</div><div class="dsc">${(st.taskOrder||'parallel')==='parallel'?'Parallel ('+tr('prac')+' 1s → 2s → ...)':'Focused (per subject)'}</div></div><div class="tog ${(st.taskOrder||'parallel')==='parallel'?'on':''}" onclick="togTaskOrder()"></div></div>`;
+h+=`<div class="sr"><div><div class="lbl">📖 ${tr('lectures')}</div><div class="dsc">${tr('add_sched')}</div></div><div class="tog ${st.showV?'on':''}" onclick="togSchedType('showV')"></div></div>`;
+h+=`<div class="sr"><div><div class="lbl">📝 ${tr('practicals')}</div><div class="dsc">${tr('add_sched')}</div></div><div class="tog ${st.showU?'on':''}" onclick="togSchedType('showU')"></div></div>`;
+h+=`<div class="sr"><div><div class="lbl">📄 ${tr('past_exams')}</div><div class="dsc">${tr('add_sched')}</div></div><div class="tog ${st.showPE?'on':''}" onclick="togSchedType('showPE')"></div></div>`;
+h+=`<div class="sub">DEFAULT DURATIONS (hours)</div>`;
+h+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">`;
+h+=`<div><label>VORLESUNG</label><input type="number" value="${st.defVDur||1}" step="0.5" inputmode="decimal" min="0.5" onchange="saveDef('defVDur',this.value)"></div>`;
+h+=`<div><label>ÜBUNG</label><input type="number" value="${st.defUDur||1.5}" step="0.5" inputmode="decimal" min="0.5" onchange="saveDef('defUDur',this.value)"></div>`;
+h+=`<div><label>PAST EXAM</label><input type="number" value="${st.defPeDur||2.5}" step="0.5" inputmode="decimal" min="0.5" onchange="saveDef('defPeDur',this.value)"></div>`;
+h+=`</div>`;
+h+=`<div class="sub">HEATMAP COLORS</div>`;
+h+=`<div style="font-size:8px;color:var(--dim);margin-bottom:6px">Minutes of study required for each color level</div>`;
+h+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">`;
+h+=`<div><label>🟩 LIGHT (min)</label><input type="number" value="${st.hmT1||30}" inputmode="numeric" min="1" onchange="saveHmThresh('hmT1',this.value)"></div>`;
+h+=`<div><label>🟨 MEDIUM (min)</label><input type="number" value="${st.hmT2||60}" inputmode="numeric" min="1" onchange="saveHmThresh('hmT2',this.value)"></div>`;
+h+=`<div><label>🟦 DARK (min)</label><input type="number" value="${st.hmT3||120}" inputmode="numeric" min="1" onchange="saveHmThresh('hmT3',this.value)"></div>`;
+h+=`</div>`;
+h+=`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px"><div class="hm-cell" style="width:10px;height:10px;flex-shrink:0"></div><div class="hm-cell l1" style="width:10px;height:10px;flex-shrink:0"></div><div class="hm-cell l2" style="width:10px;height:10px;flex-shrink:0"></div><div class="hm-cell l3" style="width:10px;height:10px;flex-shrink:0"></div><div class="hm-cell l4" style="width:10px;height:10px;flex-shrink:0"></div><span style="font-size:7px;color:var(--dim)">0 → ${st.hmT1||30}m → ${st.hmT2||60}m → ${st.hmT3||120}m → ∞</span></div>`;
 h+=`<div class="sub">DATA</div>`;
 h+=`<div style="display:flex;gap:4px;flex-wrap:wrap">`;
 h+=`<button class="btn bp" style="flex:1;font-size:8px" onclick="backup()">💾 Backup</button>`;
@@ -463,6 +840,7 @@ h+=`<button class="btn bs" style="flex:1;font-size:8px" onclick="document.getEle
 h+=`</div>`;
 h+=`<input type="file" id="restoreInp" accept=".json" style="display:none" onchange="restore(event)">`;
 h+=`<div style="margin-top:6px"><button class="btn bs" style="width:100%;font-size:8px" onclick="exportAllAI()">🤖 Export All for AI</button></div>`;
+h+=`<div style="margin-top:6px"><button class="btn bd" style="width:100%;font-size:8px" onclick="resetProgress()">🗑️ Reset All Progress (keep subjects)</button></div>`;
 h+=`<div style="margin-top:12px;text-align:center;font-size:7px;color:var(--dim)">StudyFlow v2.0 · All data stored locally</div>`;
 el.innerHTML=h}
 
@@ -471,6 +849,82 @@ function togTheme(){const st=gSett();st.theme=st.theme==='dark'?'light':'dark';s
 function togRetro(){const st=gSett();st.retro=!st.retro;sSett(st);applyTheme();rX()}
 function togHemi(){const st=gSett();st.hemi=st.hemi==='north'?'south':'north';sSett(st);rX();rS2()}
 function togSett(k){const st=gSett();st[k]=!st[k];sSett(st);rX();rT();rS2()}
+function togTaskOrder(){const st=gSett();st.taskOrder=st.taskOrder==='parallel'?'focused':'parallel';sSett(st);rX();rT()}
+function saveHmThresh(k,v){const st=gSett();st[k]=Math.max(1,parseInt(v)||30);sSett(st);rX();rD()}
+function saveDef(k,v){const st=gSett();st[k]=Math.max(0.5,parseFloat(v)||1);sSett(st)}
+function addUniEntry(){const unis=gUnis();unis.push('New University');sUnis(unis);rX()}
+function updUni(i,v){const unis=gUnis();unis[i]=v.trim();sUnis(unis)}
+function rmUni(i){const unis=gUnis();unis.splice(i,1);sUnis(unis);rX()}
+function resetProgress(){if(!confirm('Reset all study progress?\n\nThis clears task completions and study logs.\nSubjects and schedule are kept.'))return;sProg({});sSLog({});rT();rS2();rD();rX()}
+function downloadAIPrompt(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([AI_PROMPT],{type:'text/plain'}));a.download='studyflow-ai-setup-prompt.txt';a.click()}
+function importSetupJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+r.onload=ev=>{try{
+const d=JSON.parse(ev.target.result);
+if(!d.subjects||!Array.isArray(d.subjects))throw new Error('Missing subjects array');
+// Semester
+const semId='sem_'+Date.now();
+sSems([{id:semId,type:d.semester?.type||'summer',year:d.semester?.year||new Date().getFullYear(),name:d.semester?.name||'My Semester',start:d.semester?.start||TD,end:d.semester?.end||''}]);
+activeSem=semId;
+// Subjects
+const ts=Date.now();
+const subs=d.subjects.map((s,i)=>({id:'sub_'+(ts+i),semId,name:s.name||'Subject '+(i+1),color:s.color||COLS[i%COLS.length],group:s.group||'',vCount:parseInt(s.vCount)||0,uCount:parseInt(s.uCount)||0,examDate:s.examDate||'',examTime:s.examTime||'',vDeadline:'',uDeadline:'',uni:d.university||'',resourceUrl:'',pastExams:(s.pastExams||[]).map(p=>({name:p.name||'Past Exam',year:p.year||''}))}));
+sSubs(subs);
+// University
+if(d.university){const unis=gUnis();if(!unis.includes(d.university)){unis.push(d.university);sUnis(unis)}}
+// Settings
+if(d.settings){const st=gSett();Object.assign(st,d.settings);sSett(st);applyTheme();applyLang()}
+// Schedule
+if(d.schedule){
+const sc=d.schedule;
+const rawPlan=sc.dayPlan||{'0':1,'1':1,'2':1,'3':1,'4':1,'5':1,'6':1};
+const dayPlan={};Object.entries(rawPlan).forEach(([k,v])=>{dayPlan[k]=parseInt(v)||0});
+const inclV=sc.includeVorlesungen!==false;const inclU=sc.includeUebungen!==false;const inclP=sc.includePastExams!==false;
+const startDate=sc.startDate||TD;
+let tbSub={};
+subs.forEach(s=>{tbSub[s.id]=[];
+if(inclV)for(let i=1;i<=s.vCount;i++)tbSub[s.id].push({subId:s.id,type:'v',num:i});
+if(inclU)for(let i=1;i<=s.uCount;i++)tbSub[s.id].push({subId:s.id,type:'u',num:i});
+if(inclP)(s.pastExams||[]).forEach((_,ix)=>tbSub[s.id].push({subId:s.id,type:'pe',num:ix+1}))});
+let allT=[];let sIds=subs.map(s=>s.id).filter(id=>tbSub[id].length>0);
+while(sIds.length>0){let nx=[];sIds.forEach(id=>{if(tbSub[id].length>0){allT.push(tbSub[id].shift());if(tbSub[id].length>0)nx.push(id)}});sIds=nx}
+const sdays={};let cur=new Date(startDate+'T12:00:00');let ti=0;let guard=0;
+while(ti<allT.length&&guard++<3000){const dow=cur.getDay();const cap=dayPlan[dow]||0;const dk=ds(cur);
+if(cap>0){if(!sdays[dk])sdays[dk]=[];for(let c=0;c<cap&&ti<allT.length;c++)sdays[dk].push(allT[ti++])}
+cur.setDate(cur.getDate()+1)}
+sSched({config:{subs:subs.map(s=>s.id),dayPlan,weeksBefore:sc.weeksBefore||2,generated:TD,startDate,inclV,inclU,inclP},days:sdays})}
+sProg({});sSLog({});sSkips({});
+alert('✅ Setup complete! Your schedule has been imported successfully.');
+rT();rS2();rD();rX();
+}catch(err){alert('❌ Import failed: '+err.message+'\n\nMake sure you paste the raw JSON output from the AI (no extra text).')}};
+r.readAsText(f);e.target.value=''}
+function togLang(lang){const st=gSett();st.lang=lang;sSett(st);applyLang();rX();rT();rS2();rD()}
+function applyLang(){const ids=['nl_t','nl_s','nl_d','nl_x'];const keys=['nav_today','nav_subjects','nav_data','nav_settings'];ids.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=tr(keys[i])})}
+function togSchedType(settKey){const st=gSett();st[settKey]=!st[settKey];sSett(st);
+const typeMap={showV:'v',showU:'u',showPE:'pe'};const type=typeMap[settKey];
+const sched=gSched();
+if(sched&&sched.days){
+  if(!st[settKey]){
+    Object.entries(sched.days).forEach(([d,tasks])=>{if(d>=TD)sched.days[d]=tasks.filter(t2=>t2.type!==type)});
+    sSched(sched);
+  } else {
+    const subs2=gSubs();
+    subs2.forEach(sub=>{
+      const maxN=type==='v'?sub.vCount:type==='u'?sub.uCount:(sub.pastExams||[]).length;
+      const newTasks=[];
+      for(let i=1;i<=maxN;i++){
+        const tk=getTask(sub.id,type,i);
+        if(!tk.done){
+          const inS=Object.values(sched.days).some(day=>Array.isArray(day)&&day.some(t2=>t2.subId===sub.id&&t2.type===type&&t2.num===i));
+          if(!inS)newTasks.push({subId:sub.id,type,num:i});
+        }
+      }
+      const futureDays=Object.entries(sched.days).filter(([d,tasks])=>d>=TD&&Array.isArray(tasks)&&tasks.length>0).sort(([a],[b])=>a<b?-1:1);
+      let di=0;newTasks.forEach(task=>{if(futureDays.length){futureDays[di%futureDays.length][1].push(task);di++}});
+    });
+    sSched(sched);
+  }
+}
+rX();rT();rS2()}
 function applyTheme(){const st=gSett();document.documentElement.setAttribute('data-theme',st.theme);
 if(st.retro)document.documentElement.setAttribute('data-retro','');else document.documentElement.removeAttribute('data-retro');
 document.querySelector('meta[name=theme-color]').content=st.theme==='dark'?'#0A0A0F':'#F5F5F7'}
@@ -501,10 +955,13 @@ h+=`<div class="sub">1. SELECT SUBJECTS</div>`;
 subs.forEach(sub=>{h+=`<label style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:9px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--text)"><input type="checkbox" class="schedSub" value="${sub.id}" checked style="width:auto;margin:0"> ${sub.name}</label>`});
 // Step 2: Done-by mode
 h+=`<div class="sub">2. FINISH BY</div>`;
-h+=`<div class="opr" style="margin-bottom:4px"><button class="btn bp" id="schME" onclick="document.getElementById('schME').className='btn bp';document.getElementById('schMF').className='btn bs'" style="flex:1;font-size:8px">Per exam date</button>`;
-h+=`<button class="btn bs" id="schMF" onclick="document.getElementById('schMF').className='btn bp';document.getElementById('schME').className='btn bs'" style="flex:1;font-size:8px">Fixed date</button></div>`;
+h+=`<div class="opr" style="margin-bottom:4px">`;
+h+=`<button class="btn bp" id="schME" onclick="document.getElementById('schME').className='btn bp';document.getElementById('schMF').className='btn bs';document.getElementById('schML').className='btn bs'" style="flex:1;font-size:7px">Per Exam</button>`;
+h+=`<button class="btn bs" id="schMF" onclick="document.getElementById('schMF').className='btn bp';document.getElementById('schME').className='btn bs';document.getElementById('schML').className='btn bs'" style="flex:1;font-size:7px">Fixed</button>`;
+h+=`<button class="btn bs" id="schML" onclick="document.getElementById('schML').className='btn bp';document.getElementById('schME').className='btn bs';document.getElementById('schMF').className='btn bs'" style="flex:1;font-size:7px">Earliest</button>`;
+h+=`</div>`;
 h+=`<label>WEEKS BEFORE DEADLINE</label><input id="schWB" type="number" value="2" inputmode="numeric" min="0" max="12">`;
-h+=`<label>OR FIXED END DATE (optional)</label><input id="schFD" type="date">`;
+h+=`<label>FIXED END DATE (for Fixed mode)</label><input id="schFD" type="date">`;
 // Step 3: Include types
 h+=`<div class="sub">3. INCLUDE</div>`;
 h+=`<label style="display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--text)"><input type="checkbox" id="schInV" ${st.showV?'checked':''} style="width:auto;margin:0"> Vorlesungen</label>`;
@@ -514,10 +971,12 @@ h+=`<label style="display:flex;align-items:center;gap:6px;font-size:9px;font-wei
 h+=`<div class="sub">4. TASKS PER DAY</div>`;
 h+=`<div style="font-size:8px;color:var(--dim);margin-bottom:4px">How many items to study each day?</div>`;
 const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const wknd=st.wkndMult||3;
 h+=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">`;
-dayNames.forEach((d,i)=>{const def=i===0||i===6?0:3;
-h+=`<div style="text-align:center"><div style="font-size:7px;font-weight:700;color:var(--dim)">${d}</div><input class="schDay" data-d="${i}" type="number" value="${def}" inputmode="numeric" min="0" max="20" style="text-align:center;padding:4px;font-size:10px;font-weight:800"></div>`});
+dayNames.forEach((d,i)=>{const def=i===0||i===6?Math.round(wknd*2):2;
+h+=`<div style="text-align:center"><div style="font-size:7px;font-weight:700;color:${i===0||i===6?'var(--acc)':'var(--dim)'}">${d}</div><input class="schDay" data-d="${i}" type="number" value="${def}" inputmode="numeric" min="0" max="99" style="text-align:center;padding:4px;font-size:10px;font-weight:800"></div>`});
 h+=`</div>`;
+h+=`<div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:8px;color:var(--dim)">Weekend ×<input id="schWknd" type="number" value="${wknd}" min="1" max="20" inputmode="numeric" style="width:40px;display:inline;margin:0;padding:2px 4px;font-size:10px"> weekday <button class="btn bs" style="font-size:7px;padding:2px 8px" onclick="applyWkndMult()">Apply</button></div>`;
 h+=`<div id="schPreview" style="margin-top:8px"></div>`;
 h+=`<div class="mbb"><button class="btn bs" onclick="cM()">Cancel</button><button class="btn bp" onclick="previewSchedule('${semId}')">Preview</button></div>`;
 oM(h)}
@@ -527,8 +986,10 @@ const selSubs=Array.from(document.querySelectorAll('.schedSub:checked')).map(c=>
 if(!selSubs.length)return alert('Select at least one subject');
 const subs=gSubs().filter(s=>selSubs.includes(s.id));
 const isPerExam=document.getElementById('schME').classList.contains('bp');
+const isFixed=document.getElementById('schMF').classList.contains('bp');
+const isEarliest=document.getElementById('schML').classList.contains('bp');
 const weeksBefore=parseInt(document.getElementById('schWB').value)||2;
-const fixedDate=document.getElementById('schMF').classList.contains('bp')?document.getElementById('schFD').value:'';
+const fixedDate=isFixed?document.getElementById('schFD').value:'';
 const inclV=document.getElementById('schInV').checked;
 const inclU=document.getElementById('schInU').checked;
 const inclP=document.getElementById('schInP').checked;
@@ -550,53 +1011,74 @@ while(subIds.length>0){let nextIds=[];
 subIds.forEach(id=>{if(taskBySub[id].length>0){allTasks.push(taskBySub[id].shift());if(taskBySub[id].length>0)nextIds.push(id)}});
 subIds=nextIds}
 if(!allTasks.length)return alert('All tasks already done!');
-// Calculate end date per subject (or global)
+// Calculate global end date
 let globalEnd=null;
-if(fixedDate){globalEnd=new Date(fixedDate)}
-else if(isPerExam){// Use earliest exam - weeksBefore
 const examDates=subs.filter(s=>s.examDate).map(s=>new Date(s.examDate));
+if(isFixed){if(!fixedDate)return alert('Select a fixed end date');globalEnd=new Date(fixedDate)}
+else if(isEarliest){if(!examDates.length)return alert('No exam dates set — use fixed date mode');const earliest=new Date(Math.min(...examDates));earliest.setDate(earliest.getDate()-weeksBefore*7);globalEnd=earliest}
+else{// Per Exam: prioritise tasks by each subject's own deadline; global = latest individual deadline
 if(!examDates.length)return alert('No exam dates set — use fixed date mode');
-const earliest=new Date(Math.min(...examDates));earliest.setDate(earliest.getDate()-weeksBefore*7);
-globalEnd=earliest}
-else{const examDates=subs.filter(s=>s.examDate).map(s=>new Date(s.examDate));
-if(!examDates.length)return alert('No exam dates set');
-globalEnd=new Date(Math.min(...examDates));globalEnd.setDate(globalEnd.getDate()-weeksBefore*7)}
+const subDeadlines={};const globalFallback=new Date(Math.min(...examDates));
+subs.forEach(s=>{const d=s.examDate?new Date(s.examDate):new Date(globalFallback);d.setDate(d.getDate()-weeksBefore*7);subDeadlines[s.id]=d});
+// Re-sort tasks: earlier deadline subjects first, preserving round-robin within same deadline
+allTasks.sort((a,b)=>subDeadlines[a.subId]-subDeadlines[b.subId]);
+globalEnd=new Date(Math.max(...Object.values(subDeadlines)))}
+// Count active days to deadline for min-tasks calc
+let activeDays=0;const scanCursor=new Date(TD);while(ds(scanCursor)<=ds(globalEnd)){if(dayPlan[scanCursor.getDay()]>0)activeDays++;scanCursor.setDate(scanCursor.getDate()+1)}
+const minPerDay=activeDays>0?Math.ceil(allTasks.length/activeDays):allTasks.length;
+const weeksToDeadline=Math.max(1,Math.ceil((globalEnd-new Date(TD))/(7*864e5)));
+const minPerWeek=Math.ceil(allTasks.length/weeksToDeadline);
 // Assign tasks to days
 const days={};let cursor=new Date(TD);let taskIdx=0;
 while(taskIdx<allTasks.length){const dow=cursor.getDay();const cap=dayPlan[dow]||0;
 const dk=ds(cursor);
-if(cursor>globalEnd&&taskIdx<allTasks.length){// Past deadline — pack remaining
-for(;taskIdx<allTasks.length;taskIdx++){if(!days[dk])days[dk]=[];days[dk].push(allTasks[taskIdx])}break}
-if(cap>0){if(!days[dk])days[dk]=[];
-for(let c=0;c<cap&&taskIdx<allTasks.length;c++){days[dk].push(allTasks[taskIdx]);taskIdx++}}
-cursor.setDate(cursor.getDate()+1);
-if(cursor>new Date(globalEnd.getTime()+180*864e5))break}// Safety
+if(cursor>globalEnd&&taskIdx<allTasks.length){for(;taskIdx<allTasks.length;taskIdx++){if(!days[dk])days[dk]=[];days[dk].push(allTasks[taskIdx])}break}
+if(cap>0){if(!days[dk])days[dk]=[];for(let c=0;c<cap&&taskIdx<allTasks.length;c++){days[dk].push(allTasks[taskIdx]);taskIdx++}}
+cursor.setDate(cursor.getDate()+1);if(cursor>new Date(globalEnd.getTime()+180*864e5))break}
 // Show preview
-const totalDays=Object.keys(days).length;const lastDay=Object.keys(days).sort().pop()||TD;
-const weeksNeeded=Math.ceil(allTasks.length/totalPerWeek);
+const lastDay=Object.keys(days).sort().pop()||TD;
+const weeksNeeded=Math.ceil(allTasks.length/Math.max(1,totalPerWeek));
 let prev=`<div style="padding:8px;background:var(--card2);border-radius:6px;margin-top:6px">`;
 prev+=`<div style="font-size:9px;font-weight:800;margin-bottom:4px">📊 Schedule Preview</div>`;
 prev+=`<div style="font-size:8px;color:var(--dim)">• ${allTasks.length} tasks across ${subs.length} subjects</div>`;
-prev+=`<div style="font-size:8px;color:var(--dim)">• ${totalPerWeek} per week → ~${weeksNeeded} weeks</div>`;
+prev+=`<div style="font-size:8px;color:var(--dim)">• ${totalPerWeek}/week → ~${weeksNeeded} weeks needed</div>`;
 prev+=`<div style="font-size:8px;color:var(--dim)">• ${ds(new Date(TD))} → ${lastDay}</div>`;
 prev+=`<div style="font-size:8px;color:var(--dim)">• Deadline: ${ds(globalEnd)}</div>`;
+prev+=`<div style="font-size:8px;font-weight:800;color:var(--acc);margin-top:4px">📊 Min ${minPerDay}/active day · ${minPerWeek}/week to meet deadline</div>`;
+if(totalPerWeek<minPerWeek)prev+=`<div style="font-size:8px;color:var(--danger);margin-top:2px">⚠️ Current rate is below minimum — you may miss the deadline</div>`;
 prev+=`</div>`;
 prev+=`<div class="mbb" style="margin-top:6px"><button class="btn bp" style="font-size:9px" onclick="applySchedule()">✓ Apply Schedule</button></div>`;
 document.getElementById('schPreview').innerHTML=prev;
-// Store temp schedule
-window._tempSched={config:{subs:selSubs,dayPlan,weeksBefore,generated:TD},days}}
+window._tempSched={config:{subs:selSubs,dayPlan,weeksBefore,generated:TD,startDate:TD,inclV,inclU,inclP},days}}
 
 function applySchedule(){if(!window._tempSched)return;
 const sched=window._tempSched;sSched(sched);
 cM();alert('Schedule generated! Check Today tab.');rT();rS2()}
 
+// ═══ AUTO-DISTRIBUTE + WEEKEND MULTIPLIER ═══
+function autoAddTasksToSchedule(subId){const sched=gSched();if(!sched.days||!sched.config)return;
+const sub=gSubs().find(s=>s.id===subId);if(!sub)return;
+const cfg=sched.config;const inclU=cfg.inclU!==false;const inclP=cfg.inclP!==false;
+const newTasks=[];
+if(inclU){for(let i=1;i<=sub.uCount;i++){const t=getTask(subId,'u',i);if(!t.done){const inSched=Object.values(sched.days).some(day=>day.some(t2=>t2.subId===subId&&t2.type==='u'&&t2.num===i));if(!inSched)newTasks.push({subId,type:'u',num:i})}}}
+if(inclP){(sub.pastExams||[]).forEach((_,idx)=>{const t=getTask(subId,'pe',idx+1);if(!t.done){const inSched=Object.values(sched.days).some(day=>day.some(t2=>t2.subId===subId&&t2.type==='pe'&&t2.num===idx+1));if(!inSched)newTasks.push({subId,type:'pe',num:idx+1})}})}
+if(!newTasks.length)return;
+const futureDays=Object.entries(sched.days).filter(([d,tasks])=>d>=TD&&tasks.length>0).sort(([a],[b])=>a<b?-1:1);
+if(!futureDays.length)return;
+let di=0;newTasks.forEach(task=>{futureDays[di%futureDays.length][1].push(task);di++});
+sSched(sched)}
+function applyWkndMult(){const mult=parseFloat(document.getElementById('schWknd')?.value)||3;const st=gSett();st.wkndMult=mult;sSett(st);const weekdayEls=Array.from(document.querySelectorAll('.schDay')).filter(el=>el.dataset.d!=='0'&&el.dataset.d!=='6');const avg=weekdayEls.length?Math.round(weekdayEls.reduce((s,el)=>s+(parseInt(el.value)||0),0)/weekdayEls.length):3;const wkndVal=Math.max(1,Math.round(avg*mult));document.querySelectorAll('.schDay').forEach(el=>{if(el.dataset.d==='0'||el.dataset.d==='6')el.value=wkndVal})}
+
 // ═══ ROLLOVER LOGIC ═══
 function rolloverMissed(){const sched=gSched();if(!sched.config||!sched.days)return;
-const days=sched.days;const today=new Date(TD);let changed=false;
-// Find all past days with undone tasks
+const startDate=sched.config.startDate||'2000-01-01';
+if(TD<startDate)return;
+const days=sched.days;let changed=false;
 const pastDays=Object.keys(days).filter(d=>d<TD).sort();
 let carryOver=[];
-pastDays.forEach(d=>{const tasks=days[d]||[];const skips=gSkips()[d]||[];
+pastDays.forEach(d=>{
+if(d<startDate){delete days[d];changed=true;return;}
+const tasks=days[d]||[];
 tasks.forEach(t=>{const prog=gProg();const done=prog[t.subId]&&prog[t.subId][t.type]&&prog[t.subId][t.type][t.num]&&prog[t.subId][t.type][t.num].done;
 if(!done){carryOver.push(t)}});
 delete days[d];changed=true});
@@ -611,12 +1093,20 @@ if(changed){sched.days=days;sSched(sched)}}
 function skipTask(subId,type,num){const sched=gSched();if(!sched.days)return;
 // Remove from today
 if(sched.days[TD]){sched.days[TD]=sched.days[TD].filter(t=>!(t.subId===subId&&t.type===type&&t.num===num))}
-// Add to tomorrow
+// Pull next undone task of same type for today (replace skipped slot)
+const sub=gSubs().find(s=>s.id===subId);
+if(sub){const maxN=type==='v'?sub.vCount:type==='u'?sub.uCount:(sub.pastExams||[]).length;
+for(let n=num+1;n<=maxN;n++){const t=getTask(subId,type,n);if(!t.done){const alreadyToday=(sched.days[TD]||[]).some(x=>x.subId===subId&&x.type===type&&x.num===n);if(!alreadyToday){if(!sched.days[TD])sched.days[TD]=[];sched.days[TD].unshift({subId,type,num:n})}break}}}
+// Put skipped task FIRST for tomorrow
 const tmrw=new Date(TD);tmrw.setDate(tmrw.getDate()+1);const tmrwKey=ds(tmrw);
 if(!sched.days[tmrwKey])sched.days[tmrwKey]=[];
 const exists=sched.days[tmrwKey].some(t=>t.subId===subId&&t.type===type&&t.num===num);
-if(!exists)sched.days[tmrwKey].push({subId,type,num});
+if(!exists)sched.days[tmrwKey].unshift({subId,type,num});
 sSched(sched);rT()}
+
+// ═══ CALENDAR NAV ═══
+function shiftView(days){const d=new Date(viewDate+'T12:00:00');d.setDate(d.getDate()+days);viewDate=ds(d);rT()}
+function setViewDate(date){viewDate=date;rT()}
 
 // ═══ NAV ═══
 function sV(v){cv=v;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('show'));
@@ -625,7 +1115,12 @@ const map={t:'tS',s:'sS',d:'dS',x:'xS'};document.getElementById(map[v]).classLis
 document.querySelectorAll('.nt')[['t','s','d','x'].indexOf(v)].classList.add('a');
 if(v==='t')rT();if(v==='s')rS2();if(v==='d')rD();if(v==='x')rX()}
 
+// ═══ DEFAULT DATA ═══
+function initDefaultData(){} // no defaults — user imports via AI Setup
+
 // ═══ INIT ═══
-applyTheme();rolloverMissed();sV('t');
+applyTheme();applyLang();rolloverMissed();sV('t');
+// ═══ SERVICE WORKER ═══
+if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
 </script>
 </body></html>

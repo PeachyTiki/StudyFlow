@@ -1,9 +1,14 @@
 {
   "name": "studyflow",
-  "version": "2.0.0",
-  "description": "University study tracker",
+  "version": "1.0.0",
+  "description": "Zero-dependency single-file PWA study tracker for university students. AI-assisted schedule setup, offline-first, no account required.",
+  "keywords": ["pwa", "study", "university", "tracker", "offline", "single-file"],
+  "author": "Monteo Pietsch (PeachyTiki)",
+  "license": "MIT",
   "scripts": {
     "dev": "npx serve . -l 3000 --no-clipboard",
-    "start": "npx serve . -l 3000 --no-clipboard"
+    "start": "npx serve . -l 3000 --no-clipboard",
+    "icons": "node generate-icons.js",
+    "process-icon": "node process-icon.js"
   }
 }
