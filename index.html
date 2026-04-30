@@ -152,6 +152,8 @@ function gSett(){const s=ld('sf_sett');return s?Object.assign({},SETT_DEF,s):Obj
 function sSett(v){sv('sf_sett',v)}
 function gUnis(){return ld('sf_unis')||[]}
 function sUnis(v){sv('sf_unis',v)}
+function gMoved(){return ld('sf_moved')||{}}
+function sMoved(v){sv('sf_moved',v)}
 
 // ═══ LANGUAGES ═══
 const LANGS={
@@ -283,7 +285,10 @@ function semSubs(semId){return gSubs().filter(s=>s.semId===semId)}
 // ═══ PROGRESS HELPERS ═══
 function getTask(subId,type,num){const p=gProg();return(p[subId]&&p[subId][type]&&p[subId][type][num])||{done:false,time:0}}
 function setTask(subId,type,num,data){const p=gProg();if(!p[subId])p[subId]={};if(!p[subId][type])p[subId][type]={};p[subId][type][num]={...getTask(subId,type,num),...data};sProg(p)}
-function toggleTask(subId,type,num){const t=getTask(subId,type,num);setTask(subId,type,num,{done:!t.done});rT();rS2();rD()}
+function toggleTask(subId,type,num){const t=getTask(subId,type,num);
+if(t.done){setTask(subId,type,num,{done:false});undoCompact(subId,type,num)}
+else{setTask(subId,type,num,{done:true})}
+rT();rS2();rD()}
 function subProgress(sub){const st=gSett(),p=gProg()[sub.id]||{};let vDone=0,vTotal=0,uDone=0,uTotal=0;
 if(st.showV){vTotal=sub.vCount||0;for(let i=1;i<=vTotal;i++)if(p.v&&p.v[i]&&p.v[i].done)vDone++}
 if(st.showU){uTotal=sub.uCount||0;for(let i=1;i<=uTotal;i++)if(p.u&&p.u[i]&&p.u[i].done)uDone++}
@@ -593,11 +598,13 @@ h+=`</div>`;
 ol.innerHTML=h}
 function endStudy(save){clearInterval(studyTimer);studyActive=false;
 document.getElementById('studyOL').style.display='none';
-if(save&&studyElapsed>5){const existing=getTask(studySub,studyType,studyNum);
-setTask(studySub,studyType,studyNum,{time:(existing.time||0)+studyElapsed});
-const log=gSLog();if(!log[TD])log[TD]=[];
+if(save){const existing=getTask(studySub,studyType,studyNum);
+const addT=studyElapsed>5?studyElapsed:0;
+setTask(studySub,studyType,studyNum,{done:true,time:(existing.time||0)+addT});
+if(addT>0){const log=gSLog();if(!log[TD])log[TD]=[];
 log[TD].push({subId:studySub,type:studyType,num:studyNum,duration:studyElapsed,start:new Date(studyStart).toTimeString().slice(0,5),end:new Date().toTimeString().slice(0,5)});
-sSLog(log);if(sessionIdx<0){rT();rD()}}}
+sSLog(log)}
+if(sessionIdx<0){completeTaskAndCompact(studySub,studyType,studyNum);rT();rD()}}}
 
 // ═══ CONTINUE TO NEXT + SESSION ═══
 function findNextTaskNum(subId,type,num){const sub=gSubs().find(s=>s.id===subId);if(!sub)return null;
@@ -855,7 +862,7 @@ function saveDef(k,v){const st=gSett();st[k]=Math.max(0.5,parseFloat(v)||1);sSet
 function addUniEntry(){const unis=gUnis();unis.push('New University');sUnis(unis);rX()}
 function updUni(i,v){const unis=gUnis();unis[i]=v.trim();sUnis(unis)}
 function rmUni(i){const unis=gUnis();unis.splice(i,1);sUnis(unis);rX()}
-function resetProgress(){if(!confirm('Reset all study progress?\n\nThis clears task completions and study logs.\nSubjects and schedule are kept.'))return;sProg({});sSLog({});rT();rS2();rD();rX()}
+function resetProgress(){if(!confirm('Reset all study progress?\n\nThis clears task completions and study logs.\nSubjects and schedule are kept.'))return;sProg({});sSLog({});sMoved({});rT();rS2();rD();rX()}
 function downloadAIPrompt(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([AI_PROMPT],{type:'text/plain'}));a.download='studyflow-ai-setup-prompt.txt';a.click()}
 function importSetupJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
 r.onload=ev=>{try{
@@ -892,7 +899,7 @@ while(ti<allT.length&&guard++<3000){const dow=cur.getDay();const cap=dayPlan[dow
 if(cap>0){if(!sdays[dk])sdays[dk]=[];for(let c=0;c<cap&&ti<allT.length;c++)sdays[dk].push(allT[ti++])}
 cur.setDate(cur.getDate()+1)}
 sSched({config:{subs:subs.map(s=>s.id),dayPlan,weeksBefore:sc.weeksBefore||2,generated:TD,startDate,inclV,inclU,inclP},days:sdays})}
-sProg({});sSLog({});sSkips({});
+sProg({});sSLog({});sSkips({});sMoved({});
 alert('✅ Setup complete! Your schedule has been imported successfully.');
 rT();rS2();rD();rX();
 }catch(err){alert('❌ Import failed: '+err.message+'\n\nMake sure you paste the raw JSON output from the AI (no extra text).')}};
@@ -935,7 +942,7 @@ function backup(){dl(`studyflow-backup-${TD}.json`,JSON.stringify({semesters:gSe
 function restore(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);
 if(d.semesters)sSems(d.semesters);if(d.subjects)sSubs(d.subjects);if(d.progress)sProg(d.progress);if(d.studyLog)sSLog(d.studyLog);
 if(d.settings){sSett(d.settings);applyTheme()}
-if(d.schedule)sSched(d.schedule);
+if(d.schedule)sSched(d.schedule);sMoved({});
 alert('Restored successfully!');rT();rS2();rD();rX()}catch{alert('Invalid file')}};r.readAsText(f);e.target.value=''}
 function exportAllAI(){const sems=gSems(),subs=gSubs(),prog=gProg(),log=gSLog(),st=gSett();
 let txt=`═══ STUDYFLOW DATA EXPORT ═══\nDate: ${TD}\nUniversity: ${st.uni||'Not set'}\n\n`;
@@ -1103,6 +1110,60 @@ if(!sched.days[tmrwKey])sched.days[tmrwKey]=[];
 const exists=sched.days[tmrwKey].some(t=>t.subId===subId&&t.type===type&&t.num===num);
 if(!exists)sched.days[tmrwKey].unshift({subId,type,num});
 sSched(sched);rT()}
+
+// ═══ AHEAD-OF-SCHEDULE COMPLETION ═══
+// Called when study-mode "Done" is clicked. If the task was in a future slot,
+// remove it from there, pull the first task from the next day to fill the gap,
+// and add it to today's list so it stays visible (and undo-able via untick).
+function completeTaskAndCompact(subId,type,num){
+const sched=gSched();if(!sched.days)return;
+// If already in today's slot → nothing to rearrange
+if((sched.days[TD]||[]).some(t=>t.subId===subId&&t.type===type&&t.num===num))return;
+// Find in a future slot
+const futureDates=Object.keys(sched.days).filter(d=>d>TD).sort();
+let origDate=null,origIdx=-1;
+for(const d of futureDates){const idx=(sched.days[d]||[]).findIndex(t=>t.subId===subId&&t.type===type&&t.num===num);if(idx>=0){origDate=d;origIdx=idx;break}}
+if(!origDate)return; // not scheduled anywhere future — nothing to do
+// Find what we'll pull in to fill the gap (first task of next non-empty day)
+let pulledTask=null,pulledFromDate=null;
+for(const d of futureDates){if(d>origDate&&sched.days[d]&&sched.days[d].length>0){pulledFromDate=d;pulledTask={...sched.days[d][0]};break}}
+// Store undo info
+const key=`${subId}_${type}_${num}`;
+const moved=gMoved();moved[key]={origDate,origIdx,pulledTask,pulledFromDate};sMoved(moved);
+// Remove from its slot
+sched.days[origDate].splice(origIdx,1);
+// Pull replacement task from next day
+if(pulledTask&&pulledFromDate){
+  sched.days[pulledFromDate]=sched.days[pulledFromDate].slice(1);
+  sched.days[origDate].push(pulledTask);
+  if(sched.days[pulledFromDate].length===0)delete sched.days[pulledFromDate];
+}
+if(sched.days[origDate]&&sched.days[origDate].length===0)delete sched.days[origDate];
+// Add to today so it shows as done (user can untick if accidental)
+if(!sched.days[TD])sched.days[TD]=[];
+if(!sched.days[TD].some(t=>t.subId===subId&&t.type===type&&t.num===num))sched.days[TD].push({subId,type,num});
+sSched(sched)}
+
+// Reverses a completeTaskAndCompact: puts the task back in its original slot,
+// un-pulls the replacement task, removes from today's list.
+function undoCompact(subId,type,num){
+const key=`${subId}_${type}_${num}`;
+const moved=gMoved();const entry=moved[key];
+if(!entry)return; // was a normal today-task tick — no schedule undo needed
+const sched=gSched();if(!sched.days)return;
+// Remove from today's list
+if(sched.days[TD]){sched.days[TD]=sched.days[TD].filter(t=>!(t.subId===subId&&t.type===type&&t.num===num));if(sched.days[TD].length===0)delete sched.days[TD]}
+// Un-pull: move replacement task back to its original day
+if(entry.pulledTask&&entry.pulledFromDate){
+  if(sched.days[entry.origDate]){sched.days[entry.origDate]=sched.days[entry.origDate].filter(t=>!(t.subId===entry.pulledTask.subId&&t.type===entry.pulledTask.type&&t.num===entry.pulledTask.num))}
+  if(!sched.days[entry.pulledFromDate])sched.days[entry.pulledFromDate]=[];
+  sched.days[entry.pulledFromDate].unshift(entry.pulledTask);
+}
+// Restore original task to its slot
+if(!sched.days[entry.origDate])sched.days[entry.origDate]=[];
+sched.days[entry.origDate].splice(entry.origIdx,0,{subId,type,num});
+sSched(sched);
+delete moved[key];sMoved(moved)}
 
 // ═══ CALENDAR NAV ═══
 function shiftView(days){const d=new Date(viewDate+'T12:00:00');d.setDate(d.getDate()+days);viewDate=ds(d);rT()}
