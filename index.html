@@ -124,12 +124,12 @@ button{font-family:system-ui}
 const COLS=['#7C6FFF','#FF6B6B','#4ECDC4','#FFE66D','#FF8A5C','#A78BFA','#6BCB77','#FF79C6','#4DA6FF','#F97316','#EC4899','#14B8A6','#F59E0B','#8B5CF6','#EF4444','#06B6D4'];
 const GROUP_ORDER=['Mathematics','Physics','Fluid Systems','Chemistry','Environmental Engineering'];
 const TD=ds(new Date());
-let cv='t',activeSem=null,studyActive=false,studyTimer=null,studyStart=null,studySub=null,studyType=null,studyNum=null,studyElapsed=0,dataRange='3m',sessionTasks=[],sessionIdx=-1,viewDate=TD;
+let cv='t',activeSem=null,studyActive=false,studyTimer=null,studyStart=null,studySub=null,studyType=null,studyNum=null,studyElapsed=0,dataRange='3m',sessionTasks=[],sessionIdx=-1,viewDate=TD,studyPauseTime=null,breakRemindTimer=null,breakReminderShown=false;
 
 // ═══ HELPERS ═══
-function ds(d){return d.toISOString().slice(0,10)}
+function ds(d){return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0')}
 function fd(s){const d=new Date(s+'T12:00:00');return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
-function sv(k,v){try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v))}catch(e){}}
+function sv(k,v){try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v))}catch(e){showToast('⚠️ Storage full — please backup your data!',true)}}
 function ld(k){try{const v=localStorage.getItem(k);if(!v)return null;try{return JSON.parse(v)}catch{return v}}catch{return null}}
 function oM(html){document.getElementById('mD').innerHTML=html;document.getElementById('mB').classList.add('show')}
 function cM(){document.getElementById('mB').classList.remove('show')}
@@ -147,7 +147,7 @@ function gSched(){return ld('sf_sched')||{config:null,days:{}}}
 function sSched(v){sv('sf_sched',v)}
 function gSkips(){return ld('sf_skips')||{}}
 function sSkips(v){sv('sf_skips',v)}
-const SETT_DEF={theme:'dark',lang:'en',hemi:'north',showV:true,showU:true,showPE:true,retro:false,uni:'',hmT1:30,hmT2:60,hmT3:120,taskOrder:'parallel',defVDur:1,defUDur:1.5,defPeDur:2.5,wkndMult:3};
+const SETT_DEF={theme:'dark',lang:'en',hemi:'north',showV:true,showU:true,showPE:true,retro:false,uni:'',hmT1:30,hmT2:60,hmT3:120,taskOrder:'parallel',defVDur:1,defUDur:1.5,defPeDur:2.5,wkndMult:3,use12h:false};
 function gSett(){const s=ld('sf_sett');return s?Object.assign({},SETT_DEF,s):Object.assign({},SETT_DEF)}
 function sSett(v){sv('sf_sett',v)}
 function gUnis(){return ld('sf_unis')||[]}
@@ -170,6 +170,9 @@ zh:{nav_today:"今天",nav_subjects:"科目",nav_data:"数据",nav_settings:"设
 ja:{nav_today:"今日",nav_subjects:"科目",nav_data:"データ",nav_settings:"設定",lectures:"講義",practicals:"演習",past_exams:"過去問",lec:"講義",prac:"演習",pe:"過去問",today_title:"今日の目標",upcoming:"近日中の試験",do_today:"今日やること",sem_prog:"学期の進捗",all_done:"全部完了！",no_tasks:"今日のタスクはありません",session:"学習セッション",add_sched:"スケジュールに追加",display:"表示",academic:"学術",data:"データ",lang_name:"日本語"}};
 function tr(key){const s=gSett();return(LANGS[s.lang]||LANGS.en)[key]||LANGS.en[key]||key}
 function typeLabel(type){return type==='v'?tr('lec'):type==='u'?tr('prac'):tr('pe')}
+function showToast(msg,isError=false){let el=document.getElementById('sfToast');if(!el){el=document.createElement('div');el.id='sfToast';Object.assign(el.style,{position:'fixed',top:'16px',left:'50%',transform:'translateX(-50%)',padding:'9px 16px',borderRadius:'9px',fontSize:'11px',fontWeight:'700',zIndex:'999',maxWidth:'340px',textAlign:'center',transition:'opacity .3s',boxShadow:'0 4px 16px rgba(0,0,0,.3)',pointerEvents:'none'});document.body.appendChild(el)}el.textContent=msg;el.style.background=isError?'var(--danger)':'var(--acc)';el.style.color='#FFF';el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0'},3200)}
+function calcStreak(){const log=gSLog();let s=0;const d=new Date(TD);if(!log[TD]||!log[TD].length)d.setDate(d.getDate()-1);while(true){const dk=ds(d);if(!log[dk]||!log[dk].length)break;s++;d.setDate(d.getDate()-1)}return s}
+function fmtTime(t){if(!t)return '';const st=gSett();if(!st.use12h)return t;const[h,m]=t.split(':').map(Number);return(h%12||12)+':'+(m+'').padStart(2,'0')+(h>=12?' PM':' AM')}
 
 const AI_PROMPT=`STUDYFLOW SETUP ASSISTANT
 =============================================
@@ -331,7 +334,7 @@ const subs=semSubs(sem.id),st=gSett();
 if(isToday){const exams=subs.filter(s=>s.examDate).map(s=>{const days=Math.ceil((new Date(s.examDate)-new Date(TD))/(864e5));return{...s,days}}).filter(x=>x.days>=0&&x.days<=30).sort((a,b)=>a.days-b.days);
 if(exams.length){h+=`<div class="sub">${tr('upcoming')}</div>`;
 exams.forEach(e=>{const cls=e.days<=7?'urgent':e.days<=14?'soon':'ok';
-h+=`<div class="today-card" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:10px;font-weight:800">${e.name}</div><div style="font-size:7px;color:var(--dim)">${e.examDate}${e.examTime?' at '+e.examTime:''}</div></div><span class="exam-badge ${cls}">${e.days===0?'TODAY':e.days+' days'}</span></div>`})}}
+h+=`<div class="today-card" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:10px;font-weight:800">${e.name}</div><div style="font-size:7px;color:var(--dim)">${e.examDate}${e.examTime?' at '+fmtTime(e.examTime):''}</div></div><span class="exam-badge ${cls}">${e.days===0?'TODAY':e.days+' days'}</span></div>`})}}
 // Tasks for viewed date
 const schedStart=sched.config?.startDate;
 const schedTasks=(sched.days&&sched.days[viewDate])||[];
@@ -420,7 +423,7 @@ el.innerHTML=h}
 function openSub(id){const sub=gSubs().find(s=>s.id===id);if(!sub)return;const st=gSett();
 let h=`<h3 style="color:${sub.color}">${sub.name}</h3>`;
 if(sub.group)h+=`<div style="font-size:7px;font-weight:800;letter-spacing:1.2px;color:${sub.color};opacity:.6;text-transform:uppercase;margin-bottom:4px">${sub.group}</div>`;
-if(sub.examDate)h+=`<div style="font-size:8px;color:var(--dim);margin-bottom:6px">📅 Exam: ${sub.examDate}${sub.examTime?' at '+sub.examTime:''}</div>`;
+if(sub.examDate)h+=`<div style="font-size:8px;color:var(--dim);margin-bottom:6px">📅 Exam: ${sub.examDate}${sub.examTime?' at '+fmtTime(sub.examTime):''}</div>`;
 // Resource link
 h+=`<div id="subResArea">`;
 if(sub.resourceUrl){h+=`<div style="display:flex;gap:4px;margin-bottom:8px"><a href="${sub.resourceUrl}" target="_blank" class="btn bp" style="flex:2;font-size:8px;text-decoration:none;text-align:center;background:${sub.color}">📖 Open Resources</a><button class="btn bs" style="flex:0 0 auto;font-size:8px" onclick="editResUrl('${sub.id}')">✏️</button></div>`}
@@ -566,7 +569,8 @@ const p=gProg();delete p[id];sProg(p);cM();rS2();rT()}
 
 // ═══ STUDY MODE ═══
 function startStudy(subId,type,num){const sub=gSubs().find(s=>s.id===subId);if(!sub)return;
-studyActive=true;studySub=subId;studyType=type;studyNum=num;studyElapsed=0;studyStart=Date.now();
+studyActive=true;studySub=subId;studyType=type;studyNum=num;studyElapsed=0;studyStart=Date.now();studyPauseTime=null;breakReminderShown=false;
+clearTimeout(breakRemindTimer);breakRemindTimer=setTimeout(()=>{breakReminderShown=true;renderStudy()},45*60*1000);
 const ol=document.getElementById('studyOL');ol.style.display='flex';
 studyTimer=setInterval(()=>{studyElapsed=Math.round((Date.now()-studyStart)/1000);renderStudy()},1000);
 renderStudy()}
@@ -581,6 +585,7 @@ if(sub.group)h+=`<div style="font-size:7px;font-weight:800;letter-spacing:1.5px;
 if(inSession)h+=`<div style="font-size:7px;color:var(--dim);text-align:center;margin-bottom:4px">${sessionIdx+1} / ${sessionTasks.length}</div>`;
 h+=`<div style="font-size:14px;font-weight:700;color:var(--dim);letter-spacing:.3px;text-align:center">${tl} ${studyNum}</div>`;
 h+=`<div class="study-timer" style="color:${sub.color}">${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</div>`;
+if(breakReminderShown)h+=`<div style="background:color-mix(in srgb,var(--rc) 18%,transparent);color:var(--rc);border:1px solid color-mix(in srgb,var(--rc) 40%,transparent);border-radius:7px;padding:6px 14px;font-size:9px;font-weight:800;text-align:center">☕ 45 min — take a short break!</div>`;
 h+=`<div style="display:flex;gap:8px;margin-top:24px;flex-wrap:wrap;justify-content:center">`;
 if(inSession){
 h+=`<button class="btn bd" onclick="endSession()" style="padding:12px 24px;font-size:11px">✕ End</button>`;
@@ -596,7 +601,7 @@ h+=`<button class="btn bs" onclick="exportAI('${studySub}','${studyType}',${stud
 if(sub.resourceUrl)h+=`<a href="${sub.resourceUrl}" target="_blank" class="btn bs" style="font-size:8px;padding:6px 12px;text-decoration:none;color:${sub.color};border-color:${sub.color}">📖 Resources</a>`;
 h+=`</div>`;
 ol.innerHTML=h}
-function endStudy(save){clearInterval(studyTimer);studyActive=false;
+function endStudy(save){clearInterval(studyTimer);clearTimeout(breakRemindTimer);studyActive=false;breakReminderShown=false;
 document.getElementById('studyOL').style.display='none';
 if(save){const existing=getTask(studySub,studyType,studyNum);
 const addT=studyElapsed>5?studyElapsed:0;
@@ -617,7 +622,7 @@ function openStudySession(){const sem=getActiveSem();if(!sem)return;
 const sched=gSched();const schedTasks=(sched.days&&sched.days[TD])||[];
 const subs=semSubs(sem.id);const st=gSett();let tasks=[];
 if(schedTasks.length){schedTasks.forEach(t2=>{const sub=subs.find(s=>s.id===t2.subId);if(!sub)return;const t=getTask(t2.subId,t2.type,t2.num);if(t.done)return;let label=typeLabel(t2.type)+' '+t2.num;if(t2.type==='pe'){const pe=(sub.pastExams||[])[t2.num-1];if(pe)label='📄 '+pe.name}tasks.push({sub,type:t2.type,num:t2.num,label})})}
-if(!tasks.length){alert('No tasks for today!');return}
+if(!tasks.length){showToast('No tasks scheduled for today!',true);return}
 if((st.taskOrder||'parallel')==='parallel'){tasks.sort((a,b)=>{const ao=a.type==='v'?0:a.type==='u'?1:2;const bo=b.type==='v'?0:b.type==='u'?1:2;return ao!==bo?ao-bo:a.num-b.num})}
 window._sessTasks=[...tasks];let h=`<h3>▶️ Study Session</h3>`;
 h+=`<div style="font-size:8px;color:var(--dim);margin-bottom:8px">Uncheck tasks to skip. Use ▲▼ to reorder.</div>`;
@@ -632,17 +637,17 @@ html+=`<div style="flex:1;min-width:0"><div style="font-size:9px;font-weight:800
 html+=`<div style="display:flex;gap:2px"><button onclick="sessMove(${i},-1)" style="background:var(--card);border:1px solid var(--muted);border-radius:3px;cursor:pointer;font-size:9px;padding:1px 4px;color:var(--dim)">▲</button><button onclick="sessMove(${i},1)" style="background:var(--card);border:1px solid var(--muted);border-radius:3px;cursor:pointer;font-size:9px;padding:1px 4px;color:var(--dim)">▼</button></div>`;
 html+=`</div>`});el.innerHTML=html}
 function sessMove(i,dir){const tasks=window._sessTasks||[];const j=i+dir;if(j<0||j>=tasks.length)return;[tasks[i],tasks[j]]=[tasks[j],tasks[i]];renderSessTaskList()}
-function startStudySession(){const tasks=window._sessTasks||[];const checked=Array.from(document.querySelectorAll('.sessCB:checked')).map(c=>parseInt(c.dataset.i));if(!checked.length){alert('Select at least one task');return}sessionTasks=checked.map(i=>tasks[i]);sessionIdx=0;cM();loadSessionTask()}
+function startStudySession(){const tasks=window._sessTasks||[];const checked=Array.from(document.querySelectorAll('.sessCB:checked')).map(c=>parseInt(c.dataset.i));if(!checked.length){showToast('Please select at least one task',true);return}sessionTasks=checked.map(i=>tasks[i]);sessionIdx=0;cM();loadSessionTask()}
 function loadSessionTask(){if(sessionIdx>=sessionTasks.length){endSession(true);return}const t=sessionTasks[sessionIdx];startStudy(t.sub.id,t.type,t.num)}
 function sessionDone(){if(studyElapsed>5){const ex=getTask(studySub,studyType,studyNum);setTask(studySub,studyType,studyNum,{done:true,time:(ex.time||0)+studyElapsed});const log=gSLog();if(!log[TD])log[TD]=[];log[TD].push({subId:studySub,type:studyType,num:studyNum,duration:studyElapsed,start:new Date(studyStart).toTimeString().slice(0,5),end:new Date().toTimeString().slice(0,5)});sSLog(log)}else{setTask(studySub,studyType,studyNum,{done:true})}clearInterval(studyTimer);studyActive=false;sessionIdx++;loadSessionTask()}
 function sessionSkip(){if(studyElapsed>5){const ex=getTask(studySub,studyType,studyNum);setTask(studySub,studyType,studyNum,{time:(ex.time||0)+studyElapsed});const log=gSLog();if(!log[TD])log[TD]=[];log[TD].push({subId:studySub,type:studyType,num:studyNum,duration:studyElapsed,start:new Date(studyStart).toTimeString().slice(0,5),end:new Date().toTimeString().slice(0,5)});sSLog(log)}clearInterval(studyTimer);studyActive=false;sessionIdx++;loadSessionTask()}
-function endSession(completed){clearInterval(studyTimer);studyActive=false;document.getElementById('studyOL').style.display='none';sessionTasks=[];sessionIdx=-1;rT();rS2();rD();if(completed)setTimeout(()=>alert('Session complete! Great work! 🎉'),200)}
+function endSession(completed){clearInterval(studyTimer);studyActive=false;document.getElementById('studyOL').style.display='none';sessionTasks=[];sessionIdx=-1;rT();rS2();rD();if(completed)setTimeout(()=>showToast('Session complete! Great work!'),200)}
 
 // ═══ FILE UPLOAD ═══
 function uploadFile(subId,type,num){const inp=document.createElement('input');inp.type='file';inp.accept='.pdf,.png,.jpg,.jpeg,.doc,.docx,.txt';
-inp.onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024)return alert('File too large (max 5MB)');
+inp.onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024)return showToast('File too large (max 5MB)',true);
 const r=new FileReader();r.onload=ev=>{setTask(subId,type,num,{file:{name:f.name,data:ev.target.result,type:f.type}});
-alert('File attached: '+f.name)};r.readAsDataURL(f)};inp.click()}
+showToast('Attached: '+f.name)};r.readAsDataURL(f)};inp.click()}
 
 // ═══ AI EXPORT ═══
 function exportAI(subId,type,num){const sub=gSubs().find(s=>s.id===subId);if(!sub)return;
@@ -678,10 +683,12 @@ h+=`</div>`;
 // Total study time (filtered)
 let totalSecs=0;Object.values(log).forEach(day=>day.forEach(e=>totalSecs+=e.duration||0));
 const totalHrs=Math.floor(totalSecs/3600),totalMins=Math.floor((totalSecs%3600)/60);
-h+=`<div style="display:flex;gap:6px;margin-bottom:8px">`;
-h+=`<div class="an-card" style="flex:1;text-align:center"><div class="an-val">${totalHrs}h ${totalMins}m</div><div class="an-label">TOTAL STUDY TIME</div></div>`;
-const daysStudied=Object.keys(log).length;
-h+=`<div class="an-card" style="flex:1;text-align:center"><div class="an-val">${daysStudied}</div><div class="an-label">DAYS STUDIED</div></div></div>`;
+const daysStudied=Object.keys(log).length;const streak=calcStreak();
+h+=`<div style="display:flex;gap:6px;margin-bottom:4px">`;
+h+=`<div class="an-card" style="flex:1;text-align:center"><div class="an-val" style="font-size:18px">${totalHrs}h ${totalMins}m</div><div class="an-label">TOTAL TIME</div></div>`;
+h+=`<div class="an-card" style="flex:1;text-align:center"><div class="an-val">${daysStudied}</div><div class="an-label">DAYS STUDIED</div></div>`;
+h+=`<div class="an-card" style="flex:1;text-align:center"><div class="an-val" style="font-size:20px">${streak>0?streak+'🔥':'—'}</div><div class="an-label">STREAK</div></div></div>`;
+h+=`<div style="margin-bottom:8px;padding:6px 10px;background:var(--card);border-radius:7px;font-size:8px;color:var(--dim)">${streak===0?'Study today to start your streak!':streak===1?'Day 1 — keep it going tomorrow!':streak<7?streak+' days strong — keep the momentum!':'Amazing '+streak+'-day streak!'}</div>`;
 // Heatmap — adaptive cell size per range
 const hmDays=getRangeDays(dataRange);
 const rangeLabels={'1w':'7 DAYS','1m':'30 DAYS','3m':'90 DAYS','6m':'180 DAYS','1y':'1 YEAR','ytd':'THIS YEAR'};
@@ -815,6 +822,7 @@ h+=`<b style="color:var(--text)">④</b> Click <b>Import JSON</b> — your full 
 h+=`</div>`;
 h+=`<div class="sub">${tr('display')}</div>`;
 h+=`<div class="sr"><div><div class="lbl">🌙 Dark Mode</div><div class="dsc">Toggle light/dark theme</div></div><div class="tog ${st.theme==='dark'?'on':''}" onclick="togTheme()"></div></div>`;
+h+=`<div class="sr"><div><div class="lbl">🕐 12-Hour Clock</div><div class="dsc">Display times as AM/PM</div></div><div class="tog ${st.use12h?'on':''}" onclick="tog12h()"></div></div>`;
 h+=`<div class="sr"><div><div class="lbl">📺 Retro Mode</div><div class="dsc">Classic Windows look</div></div><div class="tog ${st.retro?'on':''}" onclick="togRetro()"></div></div>`;
 h+=`<label style="margin-top:6px">🌐 LANGUAGE</label><select onchange="togLang(this.value)" style="margin-bottom:6px">${Object.entries(LANGS).map(([code,l])=>`<option value="${code}"${st.lang===code?' selected':''}>${l.lang_name}</option>`).join('')}</select>`;
 h+=`<div class="sub">UNIVERSITIES</div>`;
@@ -848,12 +856,13 @@ h+=`</div>`;
 h+=`<input type="file" id="restoreInp" accept=".json" style="display:none" onchange="restore(event)">`;
 h+=`<div style="margin-top:6px"><button class="btn bs" style="width:100%;font-size:8px" onclick="exportAllAI()">🤖 Export All for AI</button></div>`;
 h+=`<div style="margin-top:6px"><button class="btn bd" style="width:100%;font-size:8px" onclick="resetProgress()">🗑️ Reset All Progress (keep subjects)</button></div>`;
-h+=`<div style="margin-top:12px;text-align:center;font-size:7px;color:var(--dim)">StudyFlow v2.0 · All data stored locally</div>`;
+h+=`<div style="margin-top:12px;text-align:center;font-size:7px;color:var(--dim)">StudyFlow v3.0 · All data stored locally</div>`;
 el.innerHTML=h}
 
 // ═══ SETTINGS ACTIONS ═══
 function togTheme(){const st=gSett();st.theme=st.theme==='dark'?'light':'dark';sSett(st);applyTheme();rX()}
 function togRetro(){const st=gSett();st.retro=!st.retro;sSett(st);applyTheme();rX()}
+function tog12h(){const st=gSett();st.use12h=!st.use12h;sSett(st);rX();rT();rS2()}
 function togHemi(){const st=gSett();st.hemi=st.hemi==='north'?'south':'north';sSett(st);rX();rS2()}
 function togSett(k){const st=gSett();st[k]=!st[k];sSett(st);rX();rT();rS2()}
 function togTaskOrder(){const st=gSett();st.taskOrder=st.taskOrder==='parallel'?'focused':'parallel';sSett(st);rX();rT()}
@@ -900,9 +909,9 @@ if(cap>0){if(!sdays[dk])sdays[dk]=[];for(let c=0;c<cap&&ti<allT.length;c++)sdays
 cur.setDate(cur.getDate()+1)}
 sSched({config:{subs:subs.map(s=>s.id),dayPlan,weeksBefore:sc.weeksBefore||2,generated:TD,startDate,inclV,inclU,inclP},days:sdays})}
 sProg({});sSLog({});sSkips({});sMoved({});
-alert('✅ Setup complete! Your schedule has been imported successfully.');
+showToast('Setup complete! Schedule imported.');
 rT();rS2();rD();rX();
-}catch(err){alert('❌ Import failed: '+err.message+'\n\nMake sure you paste the raw JSON output from the AI (no extra text).')}};
+}catch(err){showToast('Import failed: '+err.message,true)}};
 r.readAsText(f);e.target.value=''}
 function togLang(lang){const st=gSett();st.lang=lang;sSett(st);applyLang();rX();rT();rS2();rD()}
 function applyLang(){const ids=['nl_t','nl_s','nl_d','nl_x'];const keys=['nav_today','nav_subjects','nav_data','nav_settings'];ids.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=tr(keys[i])})}
@@ -943,7 +952,7 @@ function restore(e){const f=e.target.files[0];if(!f)return;const r=new FileReade
 if(d.semesters)sSems(d.semesters);if(d.subjects)sSubs(d.subjects);if(d.progress)sProg(d.progress);if(d.studyLog)sSLog(d.studyLog);
 if(d.settings){sSett(d.settings);applyTheme()}
 if(d.schedule)sSched(d.schedule);sMoved({});
-alert('Restored successfully!');rT();rS2();rD();rX()}catch{alert('Invalid file')}};r.readAsText(f);e.target.value=''}
+showToast('Restored successfully!');rT();rS2();rD();rX()}catch{showToast('Invalid backup file',true)}};r.readAsText(f);e.target.value=''}
 function exportAllAI(){const sems=gSems(),subs=gSubs(),prog=gProg(),log=gSLog(),st=gSett();
 let txt=`═══ STUDYFLOW DATA EXPORT ═══\nDate: ${TD}\nUniversity: ${st.uni||'Not set'}\n\n`;
 sems.forEach(sem=>{txt+=`\n═══ ${sem.name||semLabel(sem)} (${sem.start} → ${sem.end}) ═══\n`;
@@ -990,7 +999,7 @@ oM(h)}
 
 function previewSchedule(semId){
 const selSubs=Array.from(document.querySelectorAll('.schedSub:checked')).map(c=>c.value);
-if(!selSubs.length)return alert('Select at least one subject');
+if(!selSubs.length)return showToast('Select at least one subject',true);
 const subs=gSubs().filter(s=>selSubs.includes(s.id));
 const isPerExam=document.getElementById('schME').classList.contains('bp');
 const isFixed=document.getElementById('schMF').classList.contains('bp');
@@ -1003,7 +1012,7 @@ const inclP=document.getElementById('schInP').checked;
 // Build day capacity map
 const dayPlan={};document.querySelectorAll('.schDay').forEach(el=>{dayPlan[el.dataset.d]=parseInt(el.value)||0});
 const totalPerWeek=Object.values(dayPlan).reduce((s,v)=>s+v,0);
-if(!totalPerWeek)return alert('Set at least 1 task per week');
+if(!totalPerWeek)return showToast('Set at least 1 task per week',true);
 // Collect all undone tasks, round-robin across subjects
 let allTasks=[];const prog=gProg();
 function isDone(subId,type,num){const p=prog[subId];return p&&p[type]&&p[type][num]&&p[type][num].done}
@@ -1017,14 +1026,14 @@ let subIds=subs.map(s=>s.id).filter(id=>taskBySub[id].length>0);
 while(subIds.length>0){let nextIds=[];
 subIds.forEach(id=>{if(taskBySub[id].length>0){allTasks.push(taskBySub[id].shift());if(taskBySub[id].length>0)nextIds.push(id)}});
 subIds=nextIds}
-if(!allTasks.length)return alert('All tasks already done!');
+if(!allTasks.length)return showToast('All tasks are already done!');
 // Calculate global end date
 let globalEnd=null;
 const examDates=subs.filter(s=>s.examDate).map(s=>new Date(s.examDate));
-if(isFixed){if(!fixedDate)return alert('Select a fixed end date');globalEnd=new Date(fixedDate)}
-else if(isEarliest){if(!examDates.length)return alert('No exam dates set — use fixed date mode');const earliest=new Date(Math.min(...examDates));earliest.setDate(earliest.getDate()-weeksBefore*7);globalEnd=earliest}
+if(isFixed){if(!fixedDate)return showToast('Select a fixed end date',true);globalEnd=new Date(fixedDate)}
+else if(isEarliest){if(!examDates.length)return showToast('No exam dates set — use Fixed Date mode',true);const earliest=new Date(Math.min(...examDates));earliest.setDate(earliest.getDate()-weeksBefore*7);globalEnd=earliest}
 else{// Per Exam: prioritise tasks by each subject's own deadline; global = latest individual deadline
-if(!examDates.length)return alert('No exam dates set — use fixed date mode');
+if(!examDates.length)return showToast('No exam dates set — use Fixed Date mode',true);
 const subDeadlines={};const globalFallback=new Date(Math.min(...examDates));
 subs.forEach(s=>{const d=s.examDate?new Date(s.examDate):new Date(globalFallback);d.setDate(d.getDate()-weeksBefore*7);subDeadlines[s.id]=d});
 // Re-sort tasks: earlier deadline subjects first, preserving round-robin within same deadline
@@ -1060,7 +1069,7 @@ window._tempSched={config:{subs:selSubs,dayPlan,weeksBefore,generated:TD,startDa
 
 function applySchedule(){if(!window._tempSched)return;
 const sched=window._tempSched;sSched(sched);
-cM();alert('Schedule generated! Check Today tab.');rT();rS2()}
+cM();showToast('Schedule generated! Check the Today tab.');rT();rS2()}
 
 // ═══ AUTO-DISTRIBUTE + WEEKEND MULTIPLIER ═══
 function autoAddTasksToSchedule(subId){const sched=gSched();if(!sched.days||!sched.config)return;
@@ -1180,7 +1189,11 @@ if(v==='t')rT();if(v==='s')rS2();if(v==='d')rD();if(v==='x')rX()}
 function initDefaultData(){} // no defaults — user imports via AI Setup
 
 // ═══ INIT ═══
+// Auto-detect system theme on first launch (no saved settings yet)
+if(!ld('sf_sett')){const st=gSett();if(window.matchMedia('(prefers-color-scheme: light)').matches)st.theme='light';sSett(st)}
 applyTheme();applyLang();rolloverMissed();sV('t');
+// Pause study timer when tab is backgrounded
+document.addEventListener('visibilitychange',()=>{if(!studyActive)return;if(document.hidden){studyPauseTime=Date.now()}else if(studyPauseTime){studyStart+=Date.now()-studyPauseTime;studyPauseTime=null}});
 // ═══ SERVICE WORKER ═══
 if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
 </script>
