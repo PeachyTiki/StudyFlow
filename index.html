@@ -4,38 +4,38 @@
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" sizes="192x192" href="icon-192.png"><link rel="apple-touch-icon" sizes="512x512" href="icon-512.png"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>StudyFlow</title>
 <style>
-:root{--bg:#0A0A0F;--card:#12121A;--card2:#1A1A25;--text:#F0F0F5;--dim:#6B6B80;--muted:#2A2A38;--acc:#7C6FFF;--acc2:#A78BFA;--ok:#44BB77;--danger:#FF5577;--rc:#FF9944;--dc:var(--acc)}
+:root{--bg:#0A0A0F;--card:#12121A;--card2:#1A1A25;--text:#F0F0F5;--dim:#6B6B80;--muted:#2A2A38;--acc:#7C6FFF;--acc2:#A78BFA;--ok:#3DD68C;--danger:#FF5577;--rc:#FF9944;--dc:var(--acc)}
 [data-theme=light]{--bg:#F5F5F7;--card:#FFF;--card2:#EEEEF2;--text:#1A1A2E;--dim:#8888A0;--muted:#D8D8E0;--acc:#6C5CE7;--acc2:#7E6EF7;--ok:#22AA66;--danger:#EE4466;--rc:#E87730;--dc:var(--acc)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'SF Pro Display',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-height:100vh;min-height:100dvh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 h2{font-size:16px;font-weight:900;letter-spacing:-.3px}
 input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--muted);background:var(--card2);color:var(--text);font-family:system-ui;font-size:11px;font-weight:600;border-radius:6px;outline:none;margin-bottom:6px}
-input:focus,select:focus{border-color:var(--acc)}
+input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 16%,transparent)}
 label{display:block;font-size:7px;font-weight:800;letter-spacing:1.2px;color:var(--dim);margin:6px 0 3px;text-transform:uppercase}
 button{font-family:system-ui}
 .btn{padding:8px 14px;border:none;border-radius:7px;font-size:9px;font-weight:800;cursor:pointer;letter-spacing:.5px;transition:.2s}
-.bp{background:var(--acc);color:#FFF}.bp:active{opacity:.8}
-.bs{background:var(--card2);color:var(--text);border:1px solid var(--muted)}
-.bd{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.bp{background:var(--acc);color:#FFF}.bp:hover{opacity:.88;transform:translateY(-1px)}.bp:active{opacity:.75;transform:translateY(0)}
+.bs{background:var(--card2);color:var(--text);border:1px solid var(--muted)}.bs:hover{border-color:var(--acc);background:var(--muted)}.bs:active{opacity:.7}
+.bd{background:transparent;color:var(--danger);border:1px solid var(--danger)}.bd:hover{background:color-mix(in srgb,var(--danger) 10%,transparent)}.bd:active{opacity:.7}
 .sub{font-size:7px;font-weight:800;letter-spacing:1.8px;color:var(--dim);padding:8px 0 4px;text-transform:uppercase}
 .sr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--muted)}
 .sr .lbl{font-size:10px;font-weight:700}.sr .dsc{font-size:7px;color:var(--dim);margin-top:1px}
-.tog{width:36px;height:20px;border-radius:10px;background:var(--muted);position:relative;cursor:pointer;transition:.3s;flex-shrink:0}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--muted);position:relative;cursor:pointer;transition:.3s;flex-shrink:0}.tog:hover{opacity:.82}
 .tog::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dim);transition:.3s}
 .tog.on{background:var(--acc)}.tog.on::after{left:18px;background:#FFF}
 .opr{display:flex;gap:4px}
 
 /* ═══ NAV BAR ═══ */
 .nb{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;background:var(--card);border-top:1px solid var(--muted);padding:6px 0 env(safe-area-inset-bottom,8px);z-index:50}
-.nt{flex:1;text-align:center;padding:4px 0;cursor:pointer;transition:.2s;opacity:.4;user-select:none}
+.nt{flex:1;text-align:center;padding:4px 0;cursor:pointer;transition:.2s;opacity:.4;user-select:none}.nt:not(.a):hover{opacity:.72}
 .nt.a{opacity:1}.nt .ni{font-size:18px;line-height:1}.nt .nl{font-size:7px;font-weight:700;letter-spacing:.5px;margin-top:1px}
 
 /* ═══ TABS ═══ */
-.tab{display:none;padding:8px 12px}.tab.show{display:block}
+.tab{display:none;padding:8px 12px}.tab.show{display:block;animation:tabIn .18s ease}@keyframes tabIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 
 /* ═══ MODAL ═══ */
 .mB{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
-.mB.show{opacity:1;pointer-events:auto}.mD{width:100%;max-width:430px;max-height:85vh;overflow-y:auto;background:var(--card);padding:16px;border-radius:14px 14px 0 0}
+.mB.show{opacity:1;pointer-events:auto}.mD{width:100%;max-width:430px;max-height:85vh;overflow-y:auto;background:var(--card);padding:16px;border-radius:14px 14px 0 0;transform:translateY(28px);transition:.26s cubic-bezier(.32,.72,0,1)}.mB.show .mD{transform:translateY(0)}
 .mD h3{font-size:13px;font-weight:900;margin-bottom:10px}
 .mbb{display:flex;gap:6px;margin-top:10px}
 .mbb .btn{flex:1}
@@ -43,11 +43,11 @@ button{font-family:system-ui}
 /* ═══ SEMESTER TABS ═══ */
 .sem-tabs{display:flex;gap:2px;overflow-x:auto;padding:4px 0;scrollbar-width:none;-ms-overflow-style:none}
 .sem-tabs::-webkit-scrollbar{display:none}
-.sem-tab{padding:5px 12px;border-radius:6px;font-size:8px;font-weight:800;letter-spacing:.5px;cursor:pointer;white-space:nowrap;background:var(--card2);color:var(--dim);transition:.2s;flex-shrink:0}
+.sem-tab{padding:5px 12px;border-radius:6px;font-size:8px;font-weight:800;letter-spacing:.5px;cursor:pointer;white-space:nowrap;background:var(--card2);color:var(--dim);transition:.2s;flex-shrink:0}.sem-tab:not(.a):hover{background:var(--muted);color:var(--text)}
 .sem-tab.a{background:var(--acc);color:#FFF}
 
 /* ═══ SUBJECT CARD ═══ */
-.sc{background:var(--card);border-radius:9px;padding:10px 12px;margin-bottom:6px;border-left:4px solid var(--sc,var(--acc));position:relative}
+.sc{background:var(--card);border-radius:9px;padding:10px 12px;margin-bottom:6px;border-left:4px solid var(--sc,var(--acc));position:relative;cursor:pointer;transition:.18s}.sc:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.13)}
 .sc-name{font-size:11px;font-weight:800}.sc-meta{font-size:7px;color:var(--dim);margin-top:2px}
 .sc-prog{display:flex;gap:8px;margin-top:6px}
 .sc-bar{flex:1}
@@ -57,12 +57,12 @@ button{font-family:system-ui}
 .sc-pct{font-size:7px;font-weight:800;color:var(--dim);margin-top:1px}
 
 /* ═══ TASK ROW ═══ */
-.tr{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--card);border-radius:7px;margin-bottom:3px}
+.tr{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--card);border-radius:7px;margin-bottom:3px;transition:.15s}.tr:not(.done):hover{background:color-mix(in srgb,var(--acc) 7%,var(--card))}
 .tr.done{opacity:.55}
 .t-chk{width:18px;height:18px;border-radius:4px;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:#FFF;flex-shrink:0;transition:.2s}
 .t-info{flex:1;min-width:0}.t-name{font-size:10px;font-weight:700}.t-sub{font-size:7px;color:var(--dim)}
 .t-acts{display:flex;gap:4px;flex-shrink:0}
-.t-btn{font-size:8px;cursor:pointer;opacity:.5;padding:2px}
+.t-btn{font-size:8px;cursor:pointer;opacity:.5;padding:2px;transition:.15s}.t-btn:hover{opacity:1;transform:scale(1.18)}
 
 /* ═══ HEATMAP ═══ */
 .hm-grid{display:flex;gap:2px;flex-wrap:wrap;padding:4px 0}
@@ -380,7 +380,7 @@ const allDone=subs.reduce((s,sub)=>s+subProgress(sub).done,0);const allTotal=sub
 const pct=allTotal?Math.round(allDone/allTotal*100):0;
 h+=`<div class="sub">${tr('sem_prog')}</div>`;
 h+=`<div class="today-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:9px;font-weight:800">${sem.name||semLabel(sem)}</span><span style="font-size:9px;font-weight:800;color:var(--acc)">${pct}%</span></div>`;
-h+=`<div style="height:6px;background:var(--muted);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--acc);border-radius:3px;transition:.3s"></div></div>`;
+h+=`<div style="height:6px;background:var(--muted);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:3px;transition:.3s"></div></div>`;
 h+=`<div style="font-size:7px;color:var(--dim);margin-top:4px">${allDone}/${allTotal} tasks complete</div></div>`;
 el.innerHTML=h}
 
@@ -856,7 +856,7 @@ h+=`</div>`;
 h+=`<input type="file" id="restoreInp" accept=".json" style="display:none" onchange="restore(event)">`;
 h+=`<div style="margin-top:6px"><button class="btn bs" style="width:100%;font-size:8px" onclick="exportAllAI()">🤖 Export All for AI</button></div>`;
 h+=`<div style="margin-top:6px"><button class="btn bd" style="width:100%;font-size:8px" onclick="resetProgress()">🗑️ Reset All Progress (keep subjects)</button></div>`;
-h+=`<div style="margin-top:12px;text-align:center;font-size:7px;color:var(--dim)">StudyFlow v3.0 · All data stored locally</div>`;
+h+=`<div style="margin-top:12px;text-align:center;font-size:7px;color:var(--dim)">StudyFlow v3.1 · All data stored locally</div>`;
 el.innerHTML=h}
 
 // ═══ SETTINGS ACTIONS ═══

@@ -1,4 +1,4 @@
-const CACHE = 'studyflow-v12';
+const CACHE = 'studyflow-v13';
 const SHELL = [
   './',
   './index.html',
